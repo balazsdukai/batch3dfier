@@ -61,7 +61,7 @@ TILE_INDEX = cfg["tile_index"]
 OUTPUT_FORMAT = cfg["output"]["format"]
 if all(format not in OUTPUT_FORMAT.lower() for format in ["csv", "obj"]):
     warnings.warn(
-        "No file format is appended to output. Currently only .obj or .csv is handled.")
+        "\n No file format is appended to output. Currently only .obj or .csv is handled.")
 
 OUTPUT_DIR = os.path.abspath(cfg["output"]["dir"])
 PATH_3DFIER = os.path.abspath(cfg["path_3dfier"])

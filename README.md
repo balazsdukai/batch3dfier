@@ -12,6 +12,8 @@ As noted above, I used the PostgreSQL dump provided at [http://data.nlextract.nl
 
 The additional and required settings are described in [prep_bag_tiles.sql](https://github.com/balazsdukai/batch3dfier/blob/master/prep_bag_tiles.sql).
 
+Finally, use the script in `bagtiler.py` to create the *views* for the tiles.
+
 ## How to run it
 
 `python3 batch3dfy.py -c batch3dfier_config.yml`
