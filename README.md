@@ -10,7 +10,7 @@ As noted above, I used the PostgreSQL dump provided at [http://data.nlextract.nl
 
 `pg_restore --no-owner --no-privileges -d bag bag-laatst.backup`
 
-The additional and required settings are described in `prep_bag_tiles.sql`.
+The additional and required settings are described in [prep_bag_tiles.sql](https://github.com/balazsdukai/batch3dfier/blob/master/prep_bag_tiles.sql).
 
 ## How to run it
 
