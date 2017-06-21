@@ -1,0 +1,35 @@
+input_polygons:
+    # Database access for 2D polygons
+    database:
+        dbname: bag
+        host: localhost
+        user: bag
+        pw: bag2017
+        tile_schema: bag_tiles  # DB Schema name for the 2D tiles
+    extent: /home/bdukai/Development/3dfier_csv/temp/area2.geojson # The polygon for clipping the input
+    tile_list: # 25gn1, 25ez1 # list of tile IDs as they are in tile_schema
+
+input_elevation:
+    dataset_dir: /home/bdukai/Data/AHN3/ahn_filtered # location of pointcloud files
+    dataset_name: C_{tile}_filtered.LAZ # naming convention for the pointcloud files, {tile} is set to uppercase
+    tile_case: upper
+    # tile_case controls how the string matching is done for {tile} in order to
+    # find the input_elevation files in dataset_dir. Allowed are 
+    # 'upper' (e.g. C_25GN1_filtered.LAZ),
+    # 'lower' (e.g. C_25gn1_filtered.LAZ),
+    # 'mixed' (e.g. C_25Gn1_filtered.LAZ). In case of 'mixed', the values of 
+    # the input_polygons tile ID (e.g. what is provided for tile_list) should
+    # match exactly the {tile} in dataset_name.
+    # For the code see call3dfier()
+
+tile_index: ["ahn3", "ahn_units"]
+# [schema, table] that stores the tile extent/index polygons and IDs. Currently
+# the same tile index is used for both BAG and AHN.
+
+output:
+    format: OBJ # OBJ # CSV-BUILDINGS-MULTIPLE
+    dir: /home/bdukai/Data/3DBAG
+
+path_3dfier: /opt/3dfier-0.9.6/build/3dfier # location of the 3dfier executable
+
+

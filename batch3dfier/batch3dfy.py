@@ -1,0 +1,236 @@
+#!/usr/bin/python3
+
+import sys
+sys.path.append("/home/bdukai/Development/3dfier_csv/")
+import os.path
+import queue
+import threading
+import time
+import warnings
+import yaml
+import argparse
+import psycopg2
+import config
+
+#===============================================================================
+#
+#             Organization of BAG and AHN tiles
+#
+#                      +-------------+
+#                      | AHN tile ID |
+#                      |      =      |
+#           +----------+   tile ID   +--------+
+#           |          |   (25gn1)   |        |
+#           |          |      =      |        |
+#           |          |    tiles    |        |
+#           |          +-------------+        |
+#           |                                 |
+# +---------v---------+               +-------v-------+
+# |    2D tile name   |               | AHN file name |
+# |          =        |               | (C_25GN1.LAZ) |
+# | 2D tile View name |               |       =       |
+# |      (t_25gn1)    |               |    pc_tile    |
+# |          =        |               |               |
+# |      tile_views   |               +---------------+
+# |                   |
+# +---------+---------+
+#           |
+#           |
+#   +-------v--------+
+#   |output file name|
+#   |       =        |
+#   |    tile_out    |
+#   |                |
+#   +----------------+
+#
+#===============================================================================
+
+#===============================================================================
+# User input and Settings
+#===============================================================================
+# Parse command-line arguments -------------------------------------------------
+parser = argparse.ArgumentParser(description="Batch 3dfy 2D dataset(s).")
+parser.add_argument(
+    "-c",
+    help="The YAML config file for batch3dfier.",
+    required=True)
+args = parser.parse_args()
+CFG_FILE = os.path.abspath(args.c)
+CFG_DIR = os.path.dirname(CFG_FILE)
+
+stream = open(CFG_FILE, "r")
+cfg = yaml.load(stream)
+
+PC_FILE_NAME = cfg["input_elevation"]["dataset_name"]
+PC_DIR = os.path.abspath(cfg["input_elevation"]["dataset_dir"])
+TILE_CASE = cfg["input_elevation"]["tile_case"]
+DBNAME = cfg["input_polygons"]["database"]["dbname"]
+HOST = cfg["input_polygons"]["database"]["host"]
+PORT = cfg["input_polygons"]["database"]["port"]
+USER = cfg["input_polygons"]["database"]["user"]
+PW = cfg["input_polygons"]["database"]["pw"]
+TILE_SCHEMA = cfg["input_polygons"]["database"]["tile_schema"]
+TILE_INDEX = cfg["tile_index"]
+
+OUTPUT_FORMAT = cfg["output"]["format"]
+if all(format not in OUTPUT_FORMAT.lower() for format in ["csv", "obj"]):
+    warnings.warn(
+        "No file format is appended to output. Currently only .obj or .csv is handled.")
+
+OUTPUT_DIR = os.path.abspath(cfg["output"]["dir"])
+PATH_3DFIER = os.path.abspath(cfg["path_3dfier"])
+
+try:
+    # in case user gave " " or "" for 'extent'
+    if len(cfg["input_polygons"]["extent"]) <= 1:
+        EXTENT_FILE = None
+    EXTENT_FILE = os.path.abspath(cfg["input_polygons"]["extent"])
+except (NameError, AttributeError, TypeError):
+    tiles = cfg["input_polygons"]["tile_list"]  # a list of 2D tiles as input
+    tiles = [t.strip() for t in tiles.split(sep=",")]
+    EXTENT_FILE = None
+    union_view = None
+    tiles_clipped = None
+
+# Prefix for naming the clipped/united views. This value shouldn't be a
+# substring in the pointcloud file names.
+CLIP_PREFIX = "_clip3dfy_"
+
+# Connect to database ----------------------------------------------------------
+try:
+    conn = psycopg2.connect(
+        database=DBNAME, user=USER, password=PW, host=HOST, port=PORT)
+    print("Opened database successfully")
+except:
+    print("I'm unable to connect to the database")
+
+
+#===============================================================================
+# Get tile list if EXTENT_FILE provided
+#===============================================================================
+
+if EXTENT_FILE:
+    tiles, poly = config.get_2Dtiles(EXTENT_FILE, conn, TILE_INDEX)
+
+    # Get view names for tiles
+    tile_views = config.get_2Dtile_views(conn, TILE_SCHEMA, tiles)
+
+    # clip 2D tiles to extent
+    tiles_clipped = config.clip_2Dtiles(conn, TILE_SCHEMA,
+                                        tile_views, poly, CLIP_PREFIX)
+
+    # if the area of the extent is less than that of a tile, union the tiles is the
+    # extent spans over many
+    tile_area = config.get_2Dtile_area(conn=conn, tile_index=TILE_INDEX)
+    if len(tiles_clipped) > 1 and poly.area < tile_area:
+        union_view = config.union_2Dtiles(
+            conn, TILE_SCHEMA, tiles_clipped, CLIP_PREFIX)
+    else:
+        union_view = []
+else:
+    tile_views = config.get_2Dtile_views(conn, TILE_SCHEMA, tiles)
+
+
+#===============================================================================
+# Process multiple threads
+# reference: http://www.tutorialspoint.com/python3/python_multithreading.htm
+#===============================================================================
+
+exitFlag = 0
+tiles_skipped = []
+
+
+class myThread (threading.Thread):
+
+    def __init__(self, threadID, name, q):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.q = q
+
+    def run(self):
+        print ("Starting " + self.name)
+        process_data(self.name, self.q)
+        print ("Exiting " + self.name)
+
+
+def process_data(threadName, q):
+    while not exitFlag:
+        queueLock.acquire()
+        if not workQueue.empty():
+            tile = q.get()
+            queueLock.release()
+            print ("%s processing %s" % (threadName, tile))
+            t = config.call3dfier(tile=tile, thread=threadName,
+                                  clip_prefix=CLIP_PREFIX,
+                                  union_view=union_view,
+                                  tiles=tiles,
+                                  pc_file_name=PC_FILE_NAME,
+                                  pc_dir=PC_DIR, tile_case=TILE_CASE,
+                                  yml_dir=CFG_DIR,
+                                  dbname=DBNAME,
+                                  host=HOST,
+                                  user=USER, pw=PW,
+                                  tile_schema=TILE_SCHEMA,
+                                  output_format=OUTPUT_FORMAT,
+                                  output_dir=OUTPUT_DIR,
+                                  path_3dfier=PATH_3DFIER)
+            if t is not None:
+                tiles_skipped.append(t)
+        else:
+            queueLock.release()
+            time.sleep(1)
+
+# Prep
+threadList = ["Thread-1", "Thread-2", "Thread-3"]
+queueLock = threading.Lock()
+workQueue = queue.Queue(10)
+threads = []
+threadID = 1
+
+# Create new threads
+for tName in threadList:
+    thread = myThread(threadID, tName, workQueue)
+    thread.start()
+    threads.append(thread)
+    threadID += 1
+
+# Fill the queue
+queueLock.acquire()
+if union_view:
+    workQueue.put(union_view)
+elif tiles_clipped:
+    for tile in tiles_clipped:
+        workQueue.put(tile)
+else:
+    for tile in tile_views:
+        workQueue.put(tile)
+queueLock.release()
+
+# Wait for queue to empty
+while not workQueue.empty():
+    pass
+
+# Notify threads it's time to exit
+exitFlag = 1
+
+# Wait for all threads to complete
+for t in threads:
+    t.join()
+print ("Exiting Main Thread")
+
+# Drop temporary views that reference the clipped extent
+if union_view:
+    tiles_clipped.append(union_view)
+if tiles_clipped:
+    config.drop_2Dtiles(conn, TILE_SCHEMA, views_to_drop=tiles_clipped)
+
+#=========================================================================
+# Reporting
+#=========================================================================
+tiles = set(tiles)
+tiles_skipped = set(tiles_skipped)
+print("\nTotal number of tiles processed: " +
+      str(len(tiles.difference(tiles_skipped))))
+print("Tiles skipped: " + str(tiles_skipped))
+print("Done.")
