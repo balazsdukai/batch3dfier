@@ -1,7 +1,26 @@
 #!/usr/bin/python3
 
-import sys
-sys.path.append("/home/bdukai/Development/3dfier_csv/")
+"""
+/***************************************************************************
+ batch3dfier
+ 
+        begin                : 2017-06-20
+        copyright            : (C) 2017 by Balázs Dukai, TU Delft
+        email                : balazs.dukai@gmail.com
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 3 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+"""
+
+# import sys
+# sys.path.append("/home/bdukai/Development/3dfier_csv/")
 import os.path
 import queue
 import threading
@@ -11,39 +30,6 @@ import yaml
 import argparse
 import psycopg2
 import config
-
-#===============================================================================
-#
-#             Organization of BAG and AHN tiles
-#
-#                      +-------------+
-#                      | AHN tile ID |
-#                      |      =      |
-#           +----------+   tile ID   +--------+
-#           |          |   (25gn1)   |        |
-#           |          |      =      |        |
-#           |          |    tiles    |        |
-#           |          +-------------+        |
-#           |                                 |
-# +---------v---------+               +-------v-------+
-# |    2D tile name   |               | AHN file name |
-# |          =        |               | (C_25GN1.LAZ) |
-# | 2D tile View name |               |       =       |
-# |      (t_25gn1)    |               |    pc_tile    |
-# |          =        |               |               |
-# |      tile_views   |               +---------------+
-# |                   |
-# +---------+---------+
-#           |
-#           |
-#   +-------v--------+
-#   |output file name|
-#   |       =        |
-#   |    tile_out    |
-#   |                |
-#   +----------------+
-#
-#===============================================================================
 
 #===============================================================================
 # User input and Settings

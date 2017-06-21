@@ -1,3 +1,23 @@
+"""
+/***************************************************************************
+ batch3dfier
+ 
+        begin                : 2017-06-20
+        copyright            : (C) 2017 by Balázs Dukai, TU Delft
+        email                : balazs.dukai@gmail.com
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 3 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+"""
+
+
 import os.path
 from subprocess import call
 from shapely.geometry import shape
