@@ -1,5 +1,8 @@
 # batch3dfier
 
+[![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0.html)
+![Python 3.5](https://img.shields.io/badge/python-3.5-blue.svg)
+
 This package is a wrapper around the [3dfier](https://github.com/tudelft3d/3dfier) software and helps you 3dfy datasets in batch. The idea for the package came from the need to efficiently create a 3D model for the whole Netherlands, using building footprints from the [BAG](https://www.kadaster.nl/basisregistratie-gebouwen) dataset and the [AHN](http://www.ahn.nl/) pointcloud.
 
 Therefore currently some database related parameters (e.g. field names) are hard-coded for a BAG database that has been created from PostgreSQL dump found at [http://data.nlextract.nl/bag/postgis/](http://data.nlextract.nl/bag/postgis/).
