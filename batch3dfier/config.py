@@ -71,7 +71,7 @@ input_elevation:
     thinning: 0
 
 options:
-  building_radius_vertex_elevation: 3.0
+  building_radius_vertex_elevation: 2.0
   radius_vertex_elevation: 1.0
   threshold_jump_edges: 0.5
 
