@@ -25,6 +25,61 @@
 
 from psycopg2 import sql
 
+def create_tile_edges(conn):
+    """Update tiles to include the lower/left boundary
+    """
+    
+    with conn.cursor() as cur:
+        cur.execute("""ALTER TABLE ahn3.ahn_units
+         ADD COLUMN geom_border geometry;""")
+    conn.commit()
+    
+    with conn.cursor() as cur:
+        cur.execute("""
+        UPDATE
+            ahn3.ahn_units
+        SET
+            geom_border = b.geom::geometry(linestring,28992)
+        FROM
+            (
+                SELECT
+                    id,
+                    st_setSRID(
+                        st_makeline(
+                            ARRAY[st_makepoint(
+                                st_xmax(geom),
+                                st_ymin(geom)
+                            ),
+                            st_makepoint(
+                                st_xmin(geom),
+                                st_ymin(geom)
+                            ),
+                            st_makepoint(
+                                st_xmin(geom),
+                                st_ymax(geom)
+                            ) ]
+                        ),
+                        28992
+                    ) AS geom
+                FROM
+                    ahn3.ahn_units
+            ) b
+        WHERE
+            ahn3.ahn_units.id = b.id;
+        """)
+    conn.commit()
+    
+    with conn.cursor() as cur:
+        cur.execute("""
+        CREATE INDEX units_geom_border_idx ON ahn3.ahn_units USING gist (geom_border);
+        SELECT populate_geometry_columns('ahn3.ahn_units'::regclass);
+        """)
+    conn.commit()
+    
+    with conn.cursor() as cur:
+        cur.execute("""VACUUM ANALYZE ahn3.ahn_units;""")
+    conn.commit()
+ 
 
 def create_centroid_table(conn):
     """Creates a table of building footprint centroids in a standard BAG database
@@ -36,9 +91,11 @@ def create_centroid_table(conn):
 
     Returns
     -------
-    nothing
+    boolean
+        indicating success/failure
 
     """
+    res = []
     
     with conn.cursor() as cur:
         cur.execute("""
@@ -53,12 +110,22 @@ def create_centroid_table(conn):
                 bagactueel.pand_centroid
                     USING gist(geom);
             """)
-    conn.commit()
+    try:
+        conn.commit()
+        res.append(True)
+    except:
+        res.append(False)
     
     with conn.cursor() as cur:
         cur.execute("VACUUM ANALYZE bagactueel.pand_centroid;")
-    conn.commit()
     
+    try:
+        conn.commit()
+        res.append(True)
+    except:
+        res.append(False)
+    
+    return(all(res))
     
     
 def bagtiler(conn):
@@ -71,14 +138,21 @@ def bagtiler(conn):
 
     Returns
     -------
-    nothing
+    boolean
+        indicating success/failure
 
     """
+    res = []
+    
     with conn.cursor() as cur:
         # Create schema to store the tiles
         schema = sql.Identifier("bag_tiles")
         cur.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {};").format(schema))
+    try:
         conn.commit()
+        res.append(True)
+    except:
+        res.append(False)
         
         
         # Get AHN3 tile IDs
@@ -115,7 +189,11 @@ def bagtiler(conn):
                                 );""").format(schema=schema, view=view), [tile])
         try:
             conn.commit()
+            res.append(True)
             print("%s BAG tiles created in schema 'bag_tiles'." % (len(tiles)))
         except:
             conn.rollback()
+            res.append(False)
             print("Couldn't create BAG tiles in schema 'bag_tiles'. Rolling back transaction.")
+            
+        return(all(res))
