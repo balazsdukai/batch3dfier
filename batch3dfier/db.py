@@ -21,6 +21,7 @@ from psycopg2 import sql
 
 
 class db(object):
+    """A database connection class """
     def __init__(self, dbname, host, port, user, password):
         try:
             self.conn = psycopg2.connect("dbname=%s host=%s port=%s \
@@ -30,13 +31,38 @@ class db(object):
         except:
             print("I'm unable to connect to the database. Exiting function.")
 
-    def sendQuery(self, query, **args):
+    def sendQuery(self, query):
+        """Send a query to the DB when no results need to return (e.g. CREATE)
+
+        Parameters
+        ----------
+        query : str
+            
+
+        Returns
+        -------
+        nothing
+
+        """
         with self.conn:
             with self.conn.cursor() as cur:
-                cur.execute(query, **args)
+                cur.execute(query)
                 
     
     def getQuery(self, query):
+        """DB query where the results need to return (e.g. SELECT)
+
+        Parameters
+        ----------
+        query : str
+            SQL query
+            
+
+        Returns
+        -------
+        psycopg2 resultset
+
+        """
         with self.conn:
             with self.conn.cursor() as cur:
                 cur.execute(query)
@@ -44,11 +70,27 @@ class db(object):
         
 
     def vacuum(self, schema, table):
-        self.conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        """Vacuum analyze a table
+
+        Parameters
+        ----------
+        schema : str
+            schema name
+        table : str
+            table name
+
+        Returns
+        -------
+        nothing
+        """
+        self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_‌​LEVEL_AUTOCOMMIT)
+        schema = sql.Identifier(schema)
+        table = sql.Identifier(table)
         query = sql.SQL("""
         VACUUM ANALYZE {schema}.{table};
         """).format(schema=schema, table=table)
         self.sendQuery(query)
     
     def close(self):
+        """ """
         self.conn.close()

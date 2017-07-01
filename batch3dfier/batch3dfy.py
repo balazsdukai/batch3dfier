@@ -91,7 +91,7 @@ CLIP_PREFIX = "_clip3dfy_"
 # except:
 #     print("I'm unable to connect to the database")
     
-dbase = db(DBNAME, HOST, PORT, USER ,PW)
+dbase = db.db(DBNAME, HOST, PORT, USER ,PW)
 
 
 #===============================================================================

@@ -198,7 +198,7 @@ def get_2Dtile_area(db, tile_index):
 
     Parameters
     ----------
-    conn : psycopg2 Connection object
+    db : db Class instance
     tile_index : tuple
         As (schema name, table name) of the table of tile index.
 
@@ -228,7 +228,7 @@ def get_2Dtiles(file, db, tile_index):
     file : str
         Path to the polygon for clipping the input.
         Must be in the same CRS as the tile_index.
-    conn : psycopg2 Connection object
+    db : db Class instance
     tile_index : tuple 
         As (schema name, table name) of the table of tile index.
 
@@ -279,7 +279,7 @@ def get_2Dtile_views(db, tile_schema, tiles):
 
     Parameters
     ----------
-    conn : psycopg2 Connection object
+    db : db Class instance
     tile_schema: str
         Name of the schema where the 2D tile views are stored.
     tiles : list
@@ -311,7 +311,7 @@ def clip_2Dtiles(db, tile_schema, tiles, poly, clip_prefix):
 
     Parameters
     ----------
-    conn : psycopg2 Connection object
+    db : db Class instance
     tile_schema : str
     tiles : list
     poly : Shapely polygon
@@ -362,7 +362,7 @@ def union_2Dtiles(db, tile_schema, tiles_clipped, clip_prefix):
 
     Parameters
     ----------
-    conn : psycopg2 Connection object
+    db : db Class instance
     tile_schema : str
     tiles_clipped : list
     clip_prefix : str
@@ -418,7 +418,7 @@ def drop_2Dtiles(db, tile_schema, views_to_drop):
 
     Parameters
     ----------
-    conn : psycopg2 Connection object
+    db : db Class instance
     tile_schema : str
     views_to_drop : list
 

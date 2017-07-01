@@ -28,6 +28,16 @@ from psycopg2 import sql
 
 def create_tile_edges(db):
     """Update tiles to include the lower/left boundary
+
+    Parameters
+    ----------
+    db : db Class instance
+        
+
+    Returns
+    -------
+    nothing
+
     """
     db.sendQuery("""ALTER TABLE ahn3.ahn_units
              ADD COLUMN geom_border geometry;""")
@@ -79,7 +89,7 @@ def create_centroid_table(db):
 
     Parameters
     ----------
-    conn : psycopg2 Connection object
+    db : db Class instance
         
 
     Returns
@@ -111,7 +121,7 @@ def bagtiler(db):
 
     Parameters
     ----------
-    conn : psycopg2 Connection object
+    db : db Class instance
         
 
     Returns
