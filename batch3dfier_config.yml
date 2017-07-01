@@ -8,7 +8,7 @@ input_polygons:
         pw: bag2017
         tile_schema: bag_tiles  # DB Schema name for the 2D tiles
     extent: /home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
-    tile_list: # 25gn1, 25ez1 # list of tile IDs as they are in tile_schema
+    tile_list: # 25gn1, 25ez1 # list of tile IDs as they are in tile_schema | 'all' to use all IDs in tile_index
 
 input_elevation:
     dataset_dir: /home/bdukai/Data/AHN3/ahn_filtered # location of pointcloud files

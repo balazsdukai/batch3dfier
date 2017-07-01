@@ -83,7 +83,7 @@ class db(object):
         -------
         nothing
         """
-        self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_‌​LEVEL_AUTOCOMMIT)
+        self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         schema = sql.Identifier(schema)
         table = sql.Identifier(table)
         query = sql.SQL("""

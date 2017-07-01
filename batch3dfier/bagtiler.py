@@ -169,8 +169,10 @@ def bagtiler(db):
                         );""").format(schema=schema, view=view, tile=tile)
         db.sendQuery(query)
     
-    db.conn.commit()
-
-    print("%s BAG tiles created in schema 'bag_tiles'." % (len(tiles)))
-    print("Couldn't create BAG tiles in schema 'bag_tiles'. Rolling back transaction.")
+    try:
+        db.conn.commit()
+        print("%s BAG tiles created in schema 'bag_tiles'." % (len(tiles)))
+    except:
+        db.conn.rollback()
+        print("Cannot create BAG tiles in schema 'bag_tiles'")
 

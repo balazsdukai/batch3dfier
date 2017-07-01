@@ -28,7 +28,7 @@ import time
 import warnings
 import yaml
 import argparse
-import psycopg2
+from psycopg2 import sql
 import config
 import db
 
@@ -92,6 +92,21 @@ CLIP_PREFIX = "_clip3dfy_"
 #     print("I'm unable to connect to the database")
     
 dbase = db.db(DBNAME, HOST, PORT, USER ,PW)
+
+
+#===============================================================================
+# Get tile list if TILE_LIST = 'all'
+#===============================================================================
+
+if tiles == 'all':
+    schema = sql.Identifier(TILE_INDEX[0])
+    table = sql.Identifier(TILE_INDEX[1])
+    query = sql.SQL("""
+                SELECT a.unit
+                FROM {schema}.{table} as a;
+                """).format(schema=schema, table=table)
+    resultset = db.getQuery(query)
+    tiles = [tile[0] for tile in resultset]
 
 
 #===============================================================================
