@@ -30,6 +30,7 @@ import yaml
 import argparse
 import psycopg2
 import config
+import db
 
 #===============================================================================
 # User input and Settings
@@ -83,12 +84,14 @@ except (NameError, AttributeError, TypeError):
 CLIP_PREFIX = "_clip3dfy_"
 
 # Connect to database ----------------------------------------------------------
-try:
-    conn = psycopg2.connect(
-        database=DBNAME, user=USER, password=PW, host=HOST, port=PORT)
-    print("Opened database successfully")
-except:
-    print("I'm unable to connect to the database")
+# try:
+#     conn = psycopg2.connect(
+#         database=DBNAME, user=USER, password=PW, host=HOST, port=PORT)
+#     print("Opened database successfully")
+# except:
+#     print("I'm unable to connect to the database")
+    
+dbase = db(DBNAME, HOST, PORT, USER ,PW)
 
 
 #===============================================================================
@@ -96,25 +99,25 @@ except:
 #===============================================================================
 
 if EXTENT_FILE:
-    tiles, poly = config.get_2Dtiles(EXTENT_FILE, conn, TILE_INDEX)
+    tiles, poly = config.get_2Dtiles(EXTENT_FILE, dbase, TILE_INDEX)
 
     # Get view names for tiles
-    tile_views = config.get_2Dtile_views(conn, TILE_SCHEMA, tiles)
+    tile_views = config.get_2Dtile_views(dbase, TILE_SCHEMA, tiles)
 
     # clip 2D tiles to extent
-    tiles_clipped = config.clip_2Dtiles(conn, TILE_SCHEMA,
+    tiles_clipped = config.clip_2Dtiles(dbase, TILE_SCHEMA,
                                         tile_views, poly, CLIP_PREFIX)
 
     # if the area of the extent is less than that of a tile, union the tiles is the
     # extent spans over many
-    tile_area = config.get_2Dtile_area(conn=conn, tile_index=TILE_INDEX)
+    tile_area = config.get_2Dtile_area(dbase=dbase, tile_index=TILE_INDEX)
     if len(tiles_clipped) > 1 and poly.area < tile_area:
         union_view = config.union_2Dtiles(
-            conn, TILE_SCHEMA, tiles_clipped, CLIP_PREFIX)
+            dbase, TILE_SCHEMA, tiles_clipped, CLIP_PREFIX)
     else:
         union_view = []
 else:
-    tile_views = config.get_2Dtile_views(conn, TILE_SCHEMA, tiles)
+    tile_views = config.get_2Dtile_views(dbase, TILE_SCHEMA, tiles)
 
 
 #===============================================================================
@@ -209,7 +212,7 @@ print ("Exiting Main Thread")
 if union_view:
     tiles_clipped.append(union_view)
 if tiles_clipped:
-    config.drop_2Dtiles(conn, TILE_SCHEMA, views_to_drop=tiles_clipped)
+    config.drop_2Dtiles(dbase, TILE_SCHEMA, views_to_drop=tiles_clipped)
 
 #=========================================================================
 # Reporting

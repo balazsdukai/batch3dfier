@@ -24,6 +24,7 @@ from shapely.geometry import shape
 from shapely import geos
 from psycopg2 import sql
 import fiona
+import db
 
 
 
@@ -188,7 +189,7 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
     return(tile_skipped)
 
 
-def get_2Dtile_area(conn, tile_index):
+def get_2Dtile_area(db, tile_index):
     """Get the area of a 2D tile.
     
     Note
@@ -209,19 +210,17 @@ def get_2Dtile_area(conn, tile_index):
     schema = sql.Identifier(tile_index[0])
     table = sql.Identifier(tile_index[1])
 
-    with conn.cursor() as cur:
-        cur.execute(
-            sql.SQL("""
-                    SELECT public.st_area(geom) AS area
-                    FROM {schema}.{table}
-                    LIMIT 1;
-                    """).format(schema=schema, table=table))
-        area = cur.fetchall()[0][0]
+    query = sql.SQL("""
+                SELECT public.st_area(geom) AS area
+                FROM {schema}.{table}
+                LIMIT 1;
+                """).format(schema=schema, table=table)
+    area = db.getQuery(query)[0][0]
 
     return(area)
 
 
-def get_2Dtiles(file, conn, tile_index):
+def get_2Dtiles(file, db, tile_index):
     """Returns a list of tiles that overlap the output extent. Returns the output extent as Shapely polygon.
 
     Parameters
@@ -243,31 +242,30 @@ def get_2Dtiles(file, conn, tile_index):
     schema = sql.Identifier(tile_index[0])
     table = sql.Identifier(tile_index[1])
 
-    with conn.cursor() as cur:
-        # I didn't find a simple way to safely get SRIDs from the input geometry
-        # Therefore its obtained from the database
-        cur.execute(sql.SQL("""SELECT st_srid(geom) AS srid
-                                FROM {schema}.{table}
-                                LIMIT 1;""").format(schema=schema, table=table))
-        srid = cur.fetchall()[0][0]
+    # I didn't find a simple way to safely get SRIDs from the input geometry
+    # Therefore its obtained from the database
+    query = sql.SQL("""SELECT st_srid(geom) AS srid
+                    FROM {schema}.{table}
+                    LIMIT 1;""").format(schema=schema, table=table)
+    srid = db.getQuery(query)[0][0]
 
-        # Get clip polygon and set SRID
-        with fiona.open(file, 'r') as src:
-            poly = shape(src[0]['geometry'])
-            # Change a the default mode to add this, if SRID is set
-            geos.WKBWriter.defaults['include_srid'] = True
-            # set SRID for polygon
-            geos.lgeos.GEOSSetSRID(poly._geom, srid)
-            ewkb = poly.wkb_hex
+    # Get clip polygon and set SRID
+    with fiona.open(file, 'r') as src:
+        poly = shape(src[0]['geometry'])
+        # Change a the default mode to add this, if SRID is set
+        geos.WKBWriter.defaults['include_srid'] = True
+        # set SRID for polygon
+        geos.lgeos.GEOSSetSRID(poly._geom, srid)
+        ewkb = poly.wkb_hex
 
-        # TODO: user input for a.unit
-        cur.execute(
-            sql.SQL("""
-                    SELECT a.unit
-                    FROM {schema}.{table} as a
-                    WHERE st_intersects(a.geom, %s::geometry);
-                    """).format(schema=schema, table=table), [ewkb])
-        resultset = cur.fetchall()
+    ewkb = sql.Literal(ewkb)
+    # TODO: user input for a.unit
+    query = sql.SQL("""
+                SELECT a.unit
+                FROM {schema}.{table} as a
+                WHERE st_intersects(a.geom, {ewkb}::geometry);
+                """).format(schema=schema, table=table, ewkb=ewkb)
+    resultset = db.getQuery(query)
     tiles = [tile[0] for tile in resultset]
 
     print("Nr. of tiles in clip extent: " + str(len(tiles)))
@@ -275,7 +273,7 @@ def get_2Dtiles(file, conn, tile_index):
     return([tiles, poly])
 
 
-def get_2Dtile_views(conn, tile_schema, tiles):
+def get_2Dtile_views(db, tile_schema, tiles):
     """Get View names of the 2D tiles. It tries to find views in tile_schema
     that contain the respective tile ID in their name.
 
@@ -295,20 +293,20 @@ def get_2Dtile_views(conn, tile_schema, tiles):
     """
     # Get View names for the tiles
     t = ["%" + tile + "%" for tile in tiles]
-    with conn.cursor() as cur:
-        cur.execute("""
-                    SELECT table_name
-                    FROM information_schema.views
-                    WHERE table_schema = %s
-                    AND table_name LIKE any(%s);
-                    """, (tile_schema, (t, )))
-        resultset = cur.fetchall()
+    t = sql.Literal(t)
+    tile_schema = sql.Literal(tile_schema)
+    query = sql.SQL("""SELECT table_name
+                        FROM information_schema.views
+                        WHERE table_schema = {}
+                        AND table_name LIKE any({});
+                        """).format(tile_schema, t)
+    resultset = db.getQuery(query)
     tile_views = [tile[0] for tile in resultset]
 
     return(tile_views)
 
 
-def clip_2Dtiles(conn, tile_schema, tiles, poly, clip_prefix):
+def clip_2Dtiles(db, tile_schema, tiles, poly, clip_prefix):
     """Creates views for the clipped tiles.
 
     Parameters
@@ -328,38 +326,38 @@ def clip_2Dtiles(conn, tile_schema, tiles, poly, clip_prefix):
     tile_schema = sql.Identifier(tile_schema)
     tiles_clipped = []
 
-    with conn.cursor() as cur:
-        for tile in tiles:
-            t = clip_prefix + tile
-            tiles_clipped.append(t)
-            view = sql.Identifier(t)
-            tile_view = sql.Identifier(tile)
-            cur.execute(
-                sql.SQL("""
-                CREATE OR REPLACE VIEW {tile_schema}.{view} AS
-                    SELECT
-                        a.gid,
-                        a.identificatie,
-                        a.geovlak
-                    FROM
-                        {tile_schema}.{tile_view} AS a
-                    WHERE
-                        st_within(a.geovlak, %s::geometry)"""
-                        ).format(tile_schema=tile_schema, view=view,
-                                 tile_view=tile_view), [poly.wkb_hex])
+    for tile in tiles:
+        t = clip_prefix + tile
+        tiles_clipped.append(t)
+        view = sql.Identifier(t)
+        tile_view = sql.Identifier(tile)
+        wkb = sql.Literal(poly.wkb_hex)
+        query = sql.SQL("""
+            CREATE OR REPLACE VIEW {tile_schema}.{view} AS
+                SELECT
+                    a.gid,
+                    a.identificatie,
+                    a.geovlak
+                FROM
+                    {tile_schema}.{tile_view} AS a
+                WHERE
+                    st_within(a.geovlak, {wkb}::geometry)"""
+                    ).format(tile_schema=tile_schema, view=view,
+                             tile_view=tile_view, wkb=wkb)
+        db.sendQuery(query)
     try:
-        conn.commit()
+        db.conn.commit()
         print(str(len(tiles_clipped)) +
               " views with prefix '{}' are created in schema {}.".format(clip_prefix, tile_schema))
     except:
         print("Cannot create view {tile_schema}.{clip_prefix}{tile}".format(
             tile_schema=tile_schema, clip_prefix=clip_prefix))
-        conn.rollback()
+        db.conn.rollback()
 
     return(tiles_clipped)
 
 
-def union_2Dtiles(conn, tile_schema, tiles_clipped, clip_prefix):
+def union_2Dtiles(db, tile_schema, tiles_clipped, clip_prefix):
     """Union the clipped tiles into a single view.
 
     Parameters
@@ -397,21 +395,21 @@ def union_2Dtiles(conn, tile_schema, tiles_clipped, clip_prefix):
                            FROM {tile_schema}.{view};""").format(tile_schema=tile_schema, view=view)
     sql_query = sql_query + sql_subquery
 
-    with conn.cursor() as cur:
-        cur.execute(sql_query)
+    db.sendQuery(sql_query)
+    
     try:
-        conn.commit()
+        db.conn.commit()
         print("View {} created in schema {}.".format(u, tile_schema))
     except:
         print("Cannot create view {tile_schema}.{u}".format(
             tile_schema=tile_schema, u=u))
-        conn.rollback()
+        db.conn.rollback()
         return(False)
 
     return(u)
 
 
-def drop_2Dtiles(conn, tile_schema, views_to_drop):
+def drop_2Dtiles(db, tile_schema, views_to_drop):
     """Drops Views in a given schema.
     
     Note
@@ -430,17 +428,17 @@ def drop_2Dtiles(conn, tile_schema, views_to_drop):
 
     """
     tile_schema = sql.Identifier(tile_schema)
-    with conn.cursor() as cur:
-        for view in views_to_drop:
-            view = sql.Identifier(view)
-            cur.execute(
-                sql.SQL("DROP VIEW IF EXISTS {tile_schema}.{view} CASCADE;").format(tile_schema=tile_schema, view=view))
+    
+    for view in views_to_drop:
+        view = sql.Identifier(view)
+        query = sql.SQL("DROP VIEW IF EXISTS {tile_schema}.{view} CASCADE;").format(tile_schema=tile_schema, view=view)
+        db.sendQuery(query)
     try:
-        conn.commit()
+        db.conn.commit()
         print("Dropped {} in schema {}.".format(views_to_drop, tile_schema))
     except:
         print("Cannot drop views ", views_to_drop)
-        conn.rollback()
+        db.conn.rollback()
         return(False)
 
     return(True)

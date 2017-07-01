@@ -24,7 +24,7 @@
 #===============================================================================
 
 from psycopg2 import sql
-import db
+
 
 def create_tile_edges(db):
     """Update tiles to include the lower/left boundary
@@ -106,7 +106,7 @@ def create_centroid_table(db):
     
     db.vacuum("bagactueel", "pand_centroid")
     
-def bagtiler(conn):
+def bagtiler(db):
     """Creates the BAG tiles (or Views) in the bag_tiles schema.
 
     Parameters
@@ -134,6 +134,7 @@ def bagtiler(conn):
     for tile in tiles:
         # the 't_' prefix is hard-coded in config.call3dfier()
         view = sql.Identifier('t_' + tile)
+        tile = sql.Literal(tile)
         query = sql.SQL("""CREATE OR REPLACE VIEW {schema}.{view} AS
                         SELECT
                             b.gid,
