@@ -28,6 +28,7 @@ import time
 import warnings
 import yaml
 import argparse
+from subprocess import call
 from psycopg2 import sql
 import config
 import db
@@ -228,6 +229,14 @@ if union_view:
     tiles_clipped.append(union_view)
 if tiles_clipped:
     config.drop_2Dtiles(dbase, TILE_SCHEMA, views_to_drop=tiles_clipped)
+    
+# Delete temporary config files
+yml_cfg = [CFG_DIR + t + "_config.yml" for t in threadList]
+command = "rm"
+for c in yml_cfg:
+    command = command + " " + c
+call(command, shell=True)
+
 
 #=========================================================================
 # Reporting
