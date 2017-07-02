@@ -19,8 +19,8 @@
  ***************************************************************************/
 """
 
-# import sys
-# sys.path.append("/home/bdukai/Development/3dfier_csv/")
+import sys
+sys.path.append("/home/bdukai/Development/batch3dfier")
 import os.path
 import queue
 import threading
@@ -63,7 +63,7 @@ TILE_INDEX = cfg["tile_index"]
 OUTPUT_FORMAT = cfg["output"]["format"]
 if all(f not in OUTPUT_FORMAT.lower() for f in ["csv", "obj"]):
     warnings.warn(
-        "\n No file format is appended to output. Currently only .obj or .csv is handled.")
+        "\n No file format is appended to output. Currently only .obj or .csv is handled.\n")
 
 OUTPUT_DIR = os.path.abspath(cfg["output"]["dir"])
 PATH_3DFIER = cfg["path_3dfier"]
