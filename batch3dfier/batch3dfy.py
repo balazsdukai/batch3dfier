@@ -60,12 +60,12 @@ TILE_SCHEMA = cfg["input_polygons"]["database"]["tile_schema"]
 TILE_INDEX = cfg["tile_index"]
 
 OUTPUT_FORMAT = cfg["output"]["format"]
-if all(format not in OUTPUT_FORMAT.lower() for format in ["csv", "obj"]):
+if all(f not in OUTPUT_FORMAT.lower() for f in ["csv", "obj"]):
     warnings.warn(
         "\n No file format is appended to output. Currently only .obj or .csv is handled.")
 
 OUTPUT_DIR = os.path.abspath(cfg["output"]["dir"])
-PATH_3DFIER = os.path.abspath(cfg["path_3dfier"])
+PATH_3DFIER = cfg["path_3dfier"]
 
 try:
     # in case user gave " " or "" for 'extent'
@@ -98,14 +98,14 @@ dbase = db.db(DBNAME, HOST, PORT, USER ,PW)
 # Get tile list if TILE_LIST = 'all'
 #===============================================================================
 
-if tiles == 'all':
+if 'all' in tiles:
     schema = sql.Identifier(TILE_INDEX[0])
     table = sql.Identifier(TILE_INDEX[1])
     query = sql.SQL("""
                 SELECT a.unit
                 FROM {schema}.{table} as a;
                 """).format(schema=schema, table=table)
-    resultset = db.getQuery(query)
+    resultset = dbase.getQuery(query)
     tiles = [tile[0] for tile in resultset]
 
 

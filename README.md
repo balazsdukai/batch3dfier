@@ -13,9 +13,9 @@ As noted above, I used the PostgreSQL dump provided at [http://data.nlextract.nl
 
 `pg_restore --no-owner --no-privileges -d bag bag-laatst.backup`
 
-The additional and required settings are described in [prep_bag_tiles.sql](https://github.com/balazsdukai/batch3dfier/blob/master/prep_bag_tiles.sql).
+The additional and required settings are described in [prep_bag_tiles.sql](https://github.com/balazsdukai/batch3dfier/blob/master/prep_bag_tiles.sql). You'll find the same commands wrapped in functions in the `bagtiler` module if you want to use them in a script.
 
-Finally, use the script in `bagtiler.py` to create the *views* for the tiles.
+As the last step, `bagtiler.bagtiler()` has to create the *views* for the tiles.
 
 ## How to run it
 
