@@ -189,7 +189,7 @@ def process_data(threadName, q):
 # Prep
 threadList = ["Thread-1", "Thread-2", "Thread-3"]
 queueLock = threading.Lock()
-workQueue = queue.Queue(10)
+workQueue = queue.Queue(0)
 threads = []
 threadID = 1
 
@@ -231,7 +231,7 @@ if tiles_clipped:
     config.drop_2Dtiles(dbase, TILE_SCHEMA, views_to_drop=tiles_clipped)
     
 # Delete temporary config files
-yml_cfg = [CFG_DIR + t + "_config.yml" for t in threadList]
+yml_cfg = [os.path.join(CFG_DIR, t + "_config.yml") for t in threadList]
 command = "rm"
 for c in yml_cfg:
     command = command + " " + c
@@ -245,5 +245,5 @@ tiles = set(tiles)
 tiles_skipped = set(tiles_skipped)
 print("\nTotal number of tiles processed: " +
       str(len(tiles.difference(tiles_skipped))))
-print("Tiles skipped: " + str(tiles_skipped))
+print("Total number of tiles skipped: " + str(len(tiles_skipped)))
 print("Done.")
