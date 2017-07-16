@@ -52,6 +52,8 @@ CFG_FILE = os.path.abspath(args.config)
 CFG_DIR = os.path.dirname(CFG_FILE)
 THREADS = args.threads
 
+CFG_FILE = "/home/bdukai/Development/batch3dfier/batch3dfier_config.yml"
+
 stream = open(CFG_FILE, "r")
 cfg = yaml.load(stream)
 
@@ -65,6 +67,7 @@ USER = cfg["input_polygons"]["database"]["user"]
 PW = cfg["input_polygons"]["database"]["pw"]
 TILE_SCHEMA = cfg["input_polygons"]["database"]["tile_schema"]
 TILE_INDEX = cfg["tile_index"]
+USER_SCHEMA = cfg["input_polygons"]["database"]["user_schema"]
 
 OUTPUT_FORMAT = cfg["output"]["format"]
 if all(f not in OUTPUT_FORMAT.lower() for f in ["csv", "obj"]):
@@ -86,6 +89,11 @@ except (NameError, AttributeError, TypeError):
     union_view = None
     tiles_clipped = None
 
+# 'user_schema' is used for the '_clip3dfy_' and '_union' views, thus
+# only use 'user_schema' if 'extent' is provided
+if (USER_SCHEMA is None) or (EXTENT_FILE is None):
+    USER_SCHEMA = TILE_SCHEMA
+
 # Prefix for naming the clipped/united views. This value shouldn't be a
 # substring in the pointcloud file names.
 CLIP_PREFIX = "_clip3dfy_"
@@ -103,7 +111,7 @@ dbase = db.db(DBNAME, HOST, PORT, USER ,PW)
 #===============================================================================
 # Get tile list if EXTENT_FILE provided
 #===============================================================================
-
+# TODO: assert that CREATE/DROP allowed on TILE_SCHEMA and/or USER_SCHEMA
 if EXTENT_FILE:
     tiles, poly = config.get_2Dtiles(EXTENT_FILE, dbase, TILE_INDEX)
 
@@ -111,7 +119,7 @@ if EXTENT_FILE:
     tile_views = config.get_2Dtile_views(dbase, TILE_SCHEMA, tiles)
 
     # clip 2D tiles to extent
-    tiles_clipped = config.clip_2Dtiles(dbase, TILE_SCHEMA,
+    tiles_clipped = config.clip_2Dtiles(dbase, USER_SCHEMA, TILE_SCHEMA,
                                         tile_views, poly, CLIP_PREFIX)
 
     # if the area of the extent is less than that of a tile, union the tiles is the
@@ -119,7 +127,7 @@ if EXTENT_FILE:
     tile_area = config.get_2Dtile_area(db=dbase, tile_index=TILE_INDEX)
     if len(tiles_clipped) > 1 and poly.area < tile_area:
         union_view = config.union_2Dtiles(
-            dbase, TILE_SCHEMA, tiles_clipped, CLIP_PREFIX)
+            dbase, USER_SCHEMA, tiles_clipped, CLIP_PREFIX)
     else:
         union_view = []
 else:
@@ -169,17 +177,20 @@ def process_data(threadName, q):
             tile = q.get()
             queueLock.release()
             print ("%s processing %s" % (threadName, tile))
-            t = config.call3dfier(tile=tile, thread=threadName,
+            t = config.call3dfier(tile=tile,
+                                  thread=threadName,
                                   clip_prefix=CLIP_PREFIX,
                                   union_view=union_view,
                                   tiles=tiles,
                                   pc_file_name=PC_FILE_NAME,
-                                  pc_dir=PC_DIR, tile_case=TILE_CASE,
+                                  pc_dir=PC_DIR,
+                                  tile_case=TILE_CASE,
                                   yml_dir=CFG_DIR,
                                   dbname=DBNAME,
                                   host=HOST,
-                                  user=USER, pw=PW,
-                                  tile_schema=TILE_SCHEMA,
+                                  user=USER,
+                                  pw=PW,
+                                  tile_schema=USER_SCHEMA,
                                   output_format=OUTPUT_FORMAT,
                                   output_dir=OUTPUT_DIR,
                                   path_3dfier=PATH_3DFIER)
@@ -232,7 +243,7 @@ print ("Exiting Main Thread")
 if union_view:
     tiles_clipped.append(union_view)
 if tiles_clipped:
-    config.drop_2Dtiles(dbase, TILE_SCHEMA, views_to_drop=tiles_clipped)
+    config.drop_2Dtiles(dbase, USER_SCHEMA, views_to_drop=tiles_clipped)
     
 # Delete temporary config files
 yml_cfg = [os.path.join(CFG_DIR, t + "_config.yml") for t in threadList]

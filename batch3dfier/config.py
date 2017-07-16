@@ -24,7 +24,7 @@ from shapely.geometry import shape
 from shapely import geos
 from psycopg2 import sql
 import fiona
-import db
+from batch3dfier import db
 
 
 
@@ -118,6 +118,7 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
 
     # Prepare AHN file names ---------------------------------------------------
     if union_view:
+    # FIXME: add or condition to include tiles_clipped
         # Prepare pointcloud file names for searching them in dataset_dir
         # the output of this block is only passed to
         tile_out = "output_batch3Dfier"
@@ -163,7 +164,7 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
             with open(yml_path, "w") as text_file:
                 text_file.write(config)
         except:
-            print("Error: can\'t write tempconfig.yml")
+            print("Error: cannot write tempconfig.yml")
         # Prep output file name
         if "obj" in output_format.lower():
             o = tile_out + ".obj"
@@ -306,12 +307,13 @@ def get_2Dtile_views(db, tile_schema, tiles):
     return(tile_views)
 
 
-def clip_2Dtiles(db, tile_schema, tiles, poly, clip_prefix):
+def clip_2Dtiles(db, user_schema, tile_schema, tiles, poly, clip_prefix):
     """Creates views for the clipped tiles.
 
     Parameters
     ----------
     db : db Class instance
+    user_schema: str
     tile_schema : str
     tiles : list
     poly : Shapely polygon
@@ -323,6 +325,7 @@ def clip_2Dtiles(db, tile_schema, tiles, poly, clip_prefix):
         Name of the views of the clipped tiles.
 
     """
+    user_schema = sql.Identifier(user_schema)
     tile_schema = sql.Identifier(tile_schema)
     tiles_clipped = []
 
@@ -333,7 +336,7 @@ def clip_2Dtiles(db, tile_schema, tiles, poly, clip_prefix):
         tile_view = sql.Identifier(tile)
         wkb = sql.Literal(poly.wkb_hex)
         query = sql.SQL("""
-            CREATE OR REPLACE VIEW {tile_schema}.{view} AS
+            CREATE OR REPLACE VIEW {user_schema}.{view} AS
                 SELECT
                     a.gid,
                     a.identificatie,
@@ -342,28 +345,29 @@ def clip_2Dtiles(db, tile_schema, tiles, poly, clip_prefix):
                     {tile_schema}.{tile_view} AS a
                 WHERE
                     st_within(a.geovlak, {wkb}::geometry)"""
-                    ).format(tile_schema=tile_schema, view=view,
+                    ).format(user_schema=user_schema,
+                             tile_schema=tile_schema, view=view,
                              tile_view=tile_view, wkb=wkb)
         db.sendQuery(query)
     try:
         db.conn.commit()
         print(str(len(tiles_clipped)) +
-              " views with prefix '{}' are created in schema {}.".format(clip_prefix, tile_schema))
+              " views with prefix '{}' are created in schema {}.".format(clip_prefix, user_schema))
     except:
-        print("Cannot create view {tile_schema}.{clip_prefix}{tile}".format(
+        print("Cannot create view {user_schema}.{clip_prefix}{tile}".format(
             tile_schema=tile_schema, clip_prefix=clip_prefix))
         db.conn.rollback()
 
     return(tiles_clipped)
 
 
-def union_2Dtiles(db, tile_schema, tiles_clipped, clip_prefix):
+def union_2Dtiles(db, user_schema, tiles_clipped, clip_prefix):
     """Union the clipped tiles into a single view.
 
     Parameters
     ----------
     db : db Class instance
-    tile_schema : str
+    user_schema : str
     tiles_clipped : list
     clip_prefix : str
 
@@ -376,40 +380,39 @@ def union_2Dtiles(db, tile_schema, tiles_clipped, clip_prefix):
     # Check if there are enough tiles to unite
     assert len(tiles_clipped) > 1, "Need at least 2 tiles for union"
 
-    tile_schema = sql.Identifier(tile_schema)
+    user_schema = sql.Identifier(user_schema)
     u = "{clip_prefix}union".format(clip_prefix=clip_prefix)
     union_view = sql.Identifier(u)
-    sql_query = sql.SQL("CREATE OR REPLACE VIEW {tile_schema}.{view} AS ").format(
-        tile_schema=tile_schema, view=union_view)
+    sql_query = sql.SQL("CREATE OR REPLACE VIEW {user_schema}.{view} AS ").format(
+        user_schema=user_schema, view=union_view)
 
     for tile in tiles_clipped[:-1]:
         view = sql.Identifier(tile)
         sql_subquery = sql.SQL("""SELECT gid, identificatie, geovlak
-                               FROM {tile_schema}.{view}
-                               UNION ALL """).format(tile_schema=tile_schema, view=view)
+                               FROM {user_schema}.{view}
+                               UNION ALL """).format(user_schema=user_schema, view=view)
 
         sql_query = sql_query + sql_subquery
     # The last statement
     view = sql.Identifier(tiles_clipped[-1])
     sql_subquery = sql.SQL("""SELECT gid, identificatie, geovlak
-                           FROM {tile_schema}.{view};""").format(tile_schema=tile_schema, view=view)
+                           FROM {user_schema}.{view};""").format(user_schema=user_schema, view=view)
     sql_query = sql_query + sql_subquery
 
     db.sendQuery(sql_query)
     
     try:
         db.conn.commit()
-        print("View {} created in schema {}.".format(u, tile_schema))
+        print("View {} created in schema {}.".format(u, user_schema))
     except:
-        print("Cannot create view {tile_schema}.{u}".format(
-            tile_schema=tile_schema, u=u))
+        print("Cannot create view {}.{}".format(user_schema, u))
         db.conn.rollback()
         return(False)
 
     return(u)
 
 
-def drop_2Dtiles(db, tile_schema, views_to_drop):
+def drop_2Dtiles(db, user_schema, views_to_drop):
     """Drops Views in a given schema.
     
     Note
@@ -419,7 +422,7 @@ def drop_2Dtiles(db, tile_schema, views_to_drop):
     Parameters
     ----------
     db : db Class instance
-    tile_schema : str
+    user_schema : str
     views_to_drop : list
 
     Returns
@@ -427,15 +430,15 @@ def drop_2Dtiles(db, tile_schema, views_to_drop):
     bool
 
     """
-    tile_schema = sql.Identifier(tile_schema)
+    user_schema = sql.Identifier(user_schema)
     
     for view in views_to_drop:
         view = sql.Identifier(view)
-        query = sql.SQL("DROP VIEW IF EXISTS {tile_schema}.{view} CASCADE;").format(tile_schema=tile_schema, view=view)
+        query = sql.SQL("DROP VIEW IF EXISTS {user_schema}.{view} CASCADE;").format(user_schema=user_schema, view=view)
         db.sendQuery(query)
     try:
         db.conn.commit()
-        print("Dropped {} in schema {}.".format(views_to_drop, tile_schema))
+        print("Dropped {} in schema {}.".format(views_to_drop, user_schema))
     except:
         print("Cannot drop views ", views_to_drop)
         db.conn.rollback()
