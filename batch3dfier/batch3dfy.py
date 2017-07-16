@@ -19,8 +19,8 @@
  ***************************************************************************/
 """
 
-import sys
-sys.path.append("/home/bdukai/Development/batch3dfier")
+# import sys
+# sys.path.append("/home/bdukai/Development/batch3dfier")
 import os.path
 import queue
 import threading
