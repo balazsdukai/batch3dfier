@@ -30,8 +30,8 @@ import yaml
 import argparse
 from subprocess import call
 from psycopg2 import sql
-import config
-import db
+from batch3dfier import config
+from batch3dfier import db
 
 #===============================================================================
 # User input and Settings
@@ -39,12 +39,18 @@ import db
 # Parse command-line arguments -------------------------------------------------
 parser = argparse.ArgumentParser(description="Batch 3dfy 2D dataset(s).")
 parser.add_argument(
-    "-c",
-    help="The YAML config file for batch3dfier.",
-    required=True)
+    "config",
+    metavar="config_file",
+    help="The YAML config file for batch3dfier.")
+parser.add_argument(
+    "-t", "--threads",
+    help="The number of threads to initiate.",
+    default=3,
+    type=int)
 args = parser.parse_args()
-CFG_FILE = os.path.abspath(args.c)
+CFG_FILE = os.path.abspath(args.config)
 CFG_DIR = os.path.dirname(CFG_FILE)
+THREADS = args.threads
 
 stream = open(CFG_FILE, "r")
 cfg = yaml.load(stream)
@@ -94,22 +100,6 @@ CLIP_PREFIX = "_clip3dfy_"
     
 dbase = db.db(DBNAME, HOST, PORT, USER ,PW)
 
-
-#===============================================================================
-# Get tile list if TILE_LIST = 'all'
-#===============================================================================
-
-if 'all' in tiles:
-    schema = sql.Identifier(TILE_INDEX[0])
-    table = sql.Identifier(TILE_INDEX[1])
-    query = sql.SQL("""
-                SELECT a.unit
-                FROM {schema}.{table} as a;
-                """).format(schema=schema, table=table)
-    resultset = dbase.getQuery(query)
-    tiles = [tile[0] for tile in resultset]
-
-
 #===============================================================================
 # Get tile list if EXTENT_FILE provided
 #===============================================================================
@@ -135,6 +125,19 @@ if EXTENT_FILE:
 else:
     tile_views = config.get_2Dtile_views(dbase, TILE_SCHEMA, tiles)
 
+#===============================================================================
+# Get tile list if TILE_LIST = 'all'
+#===============================================================================
+
+if 'all' in tiles:
+    schema = sql.Identifier(TILE_INDEX[0])
+    table = sql.Identifier(TILE_INDEX[1])
+    query = sql.SQL("""
+                SELECT a.unit
+                FROM {schema}.{table} as a;
+                """).format(schema=schema, table=table)
+    resultset = dbase.getQuery(query)
+    tiles = [tile[0] for tile in resultset]
 
 #===============================================================================
 # Process multiple threads
@@ -187,7 +190,8 @@ def process_data(threadName, q):
             time.sleep(1)
 
 # Prep
-threadList = ["Thread-1", "Thread-2", "Thread-3"]
+
+threadList = ["Thread-" + str(t+1) for t in range(THREADS)]
 queueLock = threading.Lock()
 workQueue = queue.Queue(0)
 threads = []
@@ -247,3 +251,4 @@ print("\nTotal number of tiles processed: " +
       str(len(tiles.difference(tiles_skipped))))
 print("Total number of tiles skipped: " + str(len(tiles_skipped)))
 print("Done.")
+
