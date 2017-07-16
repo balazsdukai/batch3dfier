@@ -116,7 +116,7 @@ if EXTENT_FILE:
 
     # if the area of the extent is less than that of a tile, union the tiles is the
     # extent spans over many
-    tile_area = config.get_2Dtile_area(dbase=dbase, tile_index=TILE_INDEX)
+    tile_area = config.get_2Dtile_area(db=dbase, tile_index=TILE_INDEX)
     if len(tiles_clipped) > 1 and poly.area < tile_area:
         union_view = config.union_2Dtiles(
             dbase, TILE_SCHEMA, tiles_clipped, CLIP_PREFIX)
