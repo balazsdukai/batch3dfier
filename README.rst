@@ -32,13 +32,23 @@ module if you want to use them in a script.
 As the last step, ``bagtiler.bagtiler()`` has to create the *views* for
 the tiles.
 
-How to run it
--------------
+Install and run
+---------------
 
-``python3 batch3dfy.py -c batch3dfier_config.yml``
+Download the latest release and you can run:
+
+``pip3 install batch3dfier-0.2.tar.gz``
+
+Then run *batch3dfier* as:
+
+``batch3dfy batch3dfier_config.yml``
 
 Where ``batch3dfier_config.yml`` is the YAML configuration file that
 *batch3dfier* uses (similarly to *3dfier*).
+
+Use the ``-h`` flag to get help.
+
+Use the ``-t`` flag to set the number of concurrent threads.
 
 In the YAML file there are two options to tell batch3dfier what to
 extrude:
