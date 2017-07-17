@@ -186,8 +186,7 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
         command = (path_3dfier + " {yml} -o {out}").format(
             yml=yml_path, out=output_path)
         try:
-#             call(command, shell=True)
-            print("processing...")
+            call(command, shell=True)
         except:
             print("\nCannot run 3dfier on tile " + tile)
             tile_skipped = tile
