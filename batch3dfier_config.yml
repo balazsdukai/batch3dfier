@@ -1,15 +1,15 @@
 input_polygons:
     # Database access for 2D polygons
     database:
-        dbname: bag_current
+        dbname: batch3dfier_testing
         host: localhost
         port: "5432"
-        user: bag_user1
-        pw: bag2017
-        tile_schema: bag_tiles  # Name of the schema that contains the 2D tiles
-        user_schema: user1 # Name of the schema where the user has CREATE and DROP privilege. Mainly relevant when 'extent' is provided.
-    extent: #/home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
-    tile_list: 25gn1, 25ez1 # list of tile IDs as they are in tile_schema | 'all' to use all IDs in tile_index
+        user: batch3dfier_tester
+        pw: batch3d_test
+        tile_schema: bagactueel  # Name of the schema that contains the 2D tiles
+        user_schema: # Name of the schema where the user has CREATE and DROP privilege. Mainly relevant when 'extent' is provided.
+    extent: ./data/extent_large.geojson #/home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
+    tile_list:  # list of tile IDs as they are in tile_schema | 'all' to use all IDs in tile_index
 
 input_elevation:
     dataset_dir: /home/bdukai/Data/AHN3/ahn_filtered # location of pointcloud files
@@ -24,7 +24,9 @@ input_elevation:
     # match exactly the {tile} in dataset_name.
     # For the code see call3dfier()
 
-tile_index: ["ahn3", "ahn_units"]
+tile_index:
+    polygons: ["bagactueel", "bag_units"]
+    elevation: ["ahn3", "ahn_units"]
 # [schema, table] that stores the tile extent/index polygons and IDs. Currently
 # the same tile index is used for both BAG and AHN.
 

@@ -204,7 +204,7 @@ def get_2Dtile_area(db, tile_index):
     return(area)
 
 
-def get_2Dtiles(file, db, tile_index):
+def get_2Dtiles(db, tile_index, file=None, ewkb=None):
     """Returns a list of tiles that overlap the output extent. Returns the output extent as Shapely polygon.
 
     Parameters
@@ -212,49 +212,59 @@ def get_2Dtiles(file, db, tile_index):
     file : str
         Path to the polygon for clipping the input.
         Must be in the same CRS as the tile_index.
+    ewkb : str
+        EWKB representation of a polygon.
     db : db Class instance
     tile_index : tuple 
         As (schema name, table name) of the table of tile index.
 
     Returns
     -------
-    [[tile IDs], Shapely polygon]
-        Tiles that are intersected by the polygon that is provided in
-        'extent' (YAML).
+    if file:
+        [[tile IDs], Shapely polygon, EWKB]
+            Tiles that are intersected by the polygon that is provided in
+            'extent' (YAML).
+    if ewkb:
+        [tile IDs]
 
     """
     schema = sql.Identifier(tile_index[0])
     table = sql.Identifier(tile_index[1])
-
-    # I didn't find a simple way to safely get SRIDs from the input geometry
-    # Therefore its obtained from the database
-    query = sql.SQL("""SELECT st_srid(geom) AS srid
-                    FROM {schema}.{table}
-                    LIMIT 1;""").format(schema=schema, table=table)
-    srid = db.getQuery(query)[0][0]
-
-    # Get clip polygon and set SRID
-    with fiona.open(file, 'r') as src:
-        poly = shape(src[0]['geometry'])
-        # Change a the default mode to add this, if SRID is set
-        geos.WKBWriter.defaults['include_srid'] = True
-        # set SRID for polygon
-        geos.lgeos.GEOSSetSRID(poly._geom, srid)
-        ewkb = poly.wkb_hex
-
-    ewkb = sql.Literal(ewkb)
+    
+    if file:
+        assert ewkb is None
+        # I didn't find a simple way to safely get SRIDs from the input geometry
+        # Therefore its obtained from the database
+        query = sql.SQL("""SELECT st_srid(geom) AS srid
+                        FROM {schema}.{table}
+                        LIMIT 1;""").format(schema=schema, table=table)
+        srid = db.getQuery(query)[0][0]
+    
+        # Get clip polygon and set SRID
+        with fiona.open(file, 'r') as src:
+            poly = shape(src[0]['geometry'])
+            # Change a the default mode to add this, if SRID is set
+            geos.WKBWriter.defaults['include_srid'] = True
+            # set SRID for polygon
+            geos.lgeos.GEOSSetSRID(poly._geom, srid)
+            ewkb = poly.wkb_hex
+    
+    ewkb_q = sql.Literal(ewkb)
     # TODO: user input for a.unit
     query = sql.SQL("""
                 SELECT a.unit
                 FROM {schema}.{table} as a
                 WHERE st_intersects(a.geom, {ewkb}::geometry);
-                """).format(schema=schema, table=table, ewkb=ewkb)
+                """).format(schema=schema, table=table, ewkb=ewkb_q)
     resultset = db.getQuery(query)
     tiles = [tile[0] for tile in resultset]
 
     print("Nr. of tiles in clip extent: " + str(len(tiles)))
 
-    return([tiles, poly])
+    if file:
+        return([tiles, poly, ewkb])
+    else:
+        return(tiles)
 
 
 def get_2Dtile_views(db, tile_schema, tiles):
@@ -429,7 +439,5 @@ def drop_2Dtiles(db, user_schema, views_to_drop):
 
     return(True)
 
-
-def clip_PCtile(poly):
-    # TODO: clip pointcloud tiles to extent if necessary
-    return()
+    
+    

@@ -39,8 +39,6 @@ def main():
     CFG_DIR = os.path.dirname(CFG_FILE)
     THREADS = args.threads
     
-    CFG_FILE = "/home/bdukai/Development/batch3dfier/batch3dfier_config.yml"
-    
     stream = open(CFG_FILE, "r")
     cfg = yaml.load(stream)
     
@@ -53,7 +51,8 @@ def main():
     USER = cfg["input_polygons"]["database"]["user"]
     PW = cfg["input_polygons"]["database"]["pw"]
     TILE_SCHEMA = cfg["input_polygons"]["database"]["tile_schema"]
-    TILE_INDEX = cfg["tile_index"]
+    POLY_TILE_INDEX = cfg["tile_index"]["polygons"]
+    PC_TILE_INDEX = cfg["tile_index"]["elevation"]
     USER_SCHEMA = cfg["input_polygons"]["database"]["user_schema"]
     
     OUTPUT_FORMAT = cfg["output"]["format"]
@@ -93,7 +92,8 @@ def main():
     #===============================================================================
     # TODO: assert that CREATE/DROP allowed on TILE_SCHEMA and/or USER_SCHEMA
     if EXTENT_FILE:
-        tiles, poly = config.get_2Dtiles(EXTENT_FILE, dbase, TILE_INDEX)
+        tiles, poly, ewkb = config.get_2Dtiles(file=EXTENT_FILE, db=dbase,
+                                                tile_index=POLY_TILE_INDEX)
     
         # Get view names for tiles
         tile_views = config.get_2Dtile_views(dbase, TILE_SCHEMA, tiles)
@@ -104,7 +104,7 @@ def main():
     
         # if the area of the extent is less than that of a tile, union the tiles is the
         # extent spans over many
-        tile_area = config.get_2Dtile_area(db=dbase, tile_index=TILE_INDEX)
+        tile_area = config.get_2Dtile_area(db=dbase, tile_index=POLY_TILE_INDEX)
         if len(tiles_clipped) > 1 and poly.area < tile_area:
             union_view = config.union_2Dtiles(
                 dbase, USER_SCHEMA, tiles_clipped, CLIP_PREFIX)
@@ -118,130 +118,137 @@ def main():
     #===============================================================================
     
     if 'all' in tiles:
-        schema = sql.Identifier(TILE_INDEX[0])
-        table = sql.Identifier(TILE_INDEX[1])
+        schema = sql.Identifier(POLY_TILE_INDEX[0])
+        table = sql.Identifier(POLY_TILE_INDEX[1])
         query = sql.SQL("""
                     SELECT a.unit
                     FROM {schema}.{table} as a;
                     """).format(schema=schema, table=table)
         resultset = dbase.getQuery(query)
         tiles = [tile[0] for tile in resultset]
-    
+        
+    #===========================================================================
+    # Get pointcloud tiles
+    #===========================================================================
+    if EXTENT_FILE:
+        pc_tiles = config.get_2Dtiles(ewkb=ewkb, db=dbase,
+                                                  tile_index=PC_TILE_INDEX)
+        print(pc_tiles)
     #===============================================================================
     # Process multiple threads
     # reference: http://www.tutorialspoint.com/python3/python_multithreading.htm
     #===============================================================================
-    
-    exitFlag = 0
-    tiles_skipped = []
-    
-    
-    class myThread (threading.Thread):
-    
-        def __init__(self, threadID, name, q):
-            threading.Thread.__init__(self)
-            self.threadID = threadID
-            self.name = name
-            self.q = q
-    
-        def run(self):
-            print ("Starting " + self.name)
-            process_data(self.name, self.q)
-            print ("Exiting " + self.name)
-    
-    
-    def process_data(threadName, q):
-        while not exitFlag:
-            queueLock.acquire()
-            if not workQueue.empty():
-                tile = q.get()
-                queueLock.release()
-                print ("%s processing %s" % (threadName, tile))
-                t = config.call3dfier(tile=tile,
-                                      thread=threadName,
-                                      clip_prefix=CLIP_PREFIX,
-                                      union_view=union_view,
-                                      tiles=tiles,
-                                      pc_file_name=PC_FILE_NAME,
-                                      pc_dir=PC_DIR,
-                                      tile_case=TILE_CASE,
-                                      yml_dir=CFG_DIR,
-                                      dbname=DBNAME,
-                                      host=HOST,
-                                      user=USER,
-                                      pw=PW,
-                                      tile_schema=USER_SCHEMA,
-                                      output_format=OUTPUT_FORMAT,
-                                      output_dir=OUTPUT_DIR,
-                                      path_3dfier=PATH_3DFIER)
-                if t is not None:
-                    tiles_skipped.append(t)
-            else:
-                queueLock.release()
-                time.sleep(1)
-    
-    # Prep
-    
-    threadList = ["Thread-" + str(t+1) for t in range(THREADS)]
-    queueLock = threading.Lock()
-    workQueue = queue.Queue(0)
-    threads = []
-    threadID = 1
-    
-    # Create new threads
-    for tName in threadList:
-        thread = myThread(threadID, tName, workQueue)
-        thread.start()
-        threads.append(thread)
-        threadID += 1
-    
-    # Fill the queue
-    queueLock.acquire()
-    if union_view:
-        workQueue.put(union_view)
-    elif tiles_clipped:
-        for tile in tiles_clipped:
-            workQueue.put(tile)
-    else:
-        for tile in tile_views:
-            workQueue.put(tile)
-    queueLock.release()
-    
-    # Wait for queue to empty
-    while not workQueue.empty():
-        pass
-    
-    # Notify threads it's time to exit
-    exitFlag = 1
-    
-    # Wait for all threads to complete
-    for t in threads:
-        t.join()
-    print ("Exiting Main Thread")
-    
+#     
+#     exitFlag = 0
+#     tiles_skipped = []
+#     
+#     
+#     class myThread (threading.Thread):
+#     
+#         def __init__(self, threadID, name, q):
+#             threading.Thread.__init__(self)
+#             self.threadID = threadID
+#             self.name = name
+#             self.q = q
+#     
+#         def run(self):
+#             print ("Starting " + self.name)
+#             process_data(self.name, self.q)
+#             print ("Exiting " + self.name)
+#     
+#     
+#     def process_data(threadName, q):
+#         while not exitFlag:
+#             queueLock.acquire()
+#             if not workQueue.empty():
+#                 tile = q.get()
+#                 queueLock.release()
+#                 print ("%s processing %s" % (threadName, tile))
+#                 t = config.call3dfier(tile=tile,
+#                                       thread=threadName,
+#                                       clip_prefix=CLIP_PREFIX,
+#                                       union_view=union_view,
+#                                       tiles=tiles,
+#                                       pc_file_name=PC_FILE_NAME,
+#                                       pc_dir=PC_DIR,
+#                                       tile_case=TILE_CASE,
+#                                       yml_dir=CFG_DIR,
+#                                       dbname=DBNAME,
+#                                       host=HOST,
+#                                       user=USER,
+#                                       pw=PW,
+#                                       tile_schema=USER_SCHEMA,
+#                                       output_format=OUTPUT_FORMAT,
+#                                       output_dir=OUTPUT_DIR,
+#                                       path_3dfier=PATH_3DFIER)
+#                 if t is not None:
+#                     tiles_skipped.append(t)
+#             else:
+#                 queueLock.release()
+#                 time.sleep(1)
+#     
+#     # Prep
+#     
+#     threadList = ["Thread-" + str(t+1) for t in range(THREADS)]
+#     queueLock = threading.Lock()
+#     workQueue = queue.Queue(0)
+#     threads = []
+#     threadID = 1
+#     
+#     # Create new threads
+#     for tName in threadList:
+#         thread = myThread(threadID, tName, workQueue)
+#         thread.start()
+#         threads.append(thread)
+#         threadID += 1
+#     
+#     # Fill the queue
+#     queueLock.acquire()
+#     if union_view:
+#         workQueue.put(union_view)
+#     elif tiles_clipped:
+#         for tile in tiles_clipped:
+#             workQueue.put(tile)
+#     else:
+#         for tile in tile_views:
+#             workQueue.put(tile)
+#     queueLock.release()
+#     
+#     # Wait for queue to empty
+#     while not workQueue.empty():
+#         pass
+#     
+#     # Notify threads it's time to exit
+#     exitFlag = 1
+#     
+#     # Wait for all threads to complete
+#     for t in threads:
+#         t.join()
+#     print ("Exiting Main Thread")
+#     
     # Drop temporary views that reference the clipped extent
     if union_view:
         tiles_clipped.append(union_view)
     if tiles_clipped:
         config.drop_2Dtiles(dbase, USER_SCHEMA, views_to_drop=tiles_clipped)
-        
-    # Delete temporary config files
-    yml_cfg = [os.path.join(CFG_DIR, t + "_config.yml") for t in threadList]
-    command = "rm"
-    for c in yml_cfg:
-        command = command + " " + c
-    call(command, shell=True)
-    
-    
-    #=========================================================================
-    # Reporting
-    #=========================================================================
-    tiles = set(tiles)
-    tiles_skipped = set(tiles_skipped)
-    print("\nTotal number of tiles processed: " +
-          str(len(tiles.difference(tiles_skipped))))
-    print("Total number of tiles skipped: " + str(len(tiles_skipped)))
-    print("Done.")
+         
+#     # Delete temporary config files
+#     yml_cfg = [os.path.join(CFG_DIR, t + "_config.yml") for t in threadList]
+#     command = "rm"
+#     for c in yml_cfg:
+#         command = command + " " + c
+#     call(command, shell=True)
+#      
+#      
+#     #=========================================================================
+#     # Reporting
+#     #=========================================================================
+#     tiles = set(tiles)
+#     tiles_skipped = set(tiles_skipped)
+#     print("\nTotal number of tiles processed: " +
+#           str(len(tiles.difference(tiles_skipped))))
+#     print("Total number of tiles skipped: " + str(len(tiles_skipped)))
+#     print("Done.")
 
 if __name__ == '__main__':
     main()
