@@ -5,11 +5,11 @@ from setuptools import setup
 
 setup(name='batch3dfier',
       version='0.2',
-      description='A wrapper around 3dfier to 3dfy datasets in batch. ',
+      description='A wrapper around 3dfier to 3dfy datasets in batch.',
       url='https://github.com/balazsdukai/batch3dfier',
       author='Balázs Dukai',
       author_email='balazs.dukai@gmail.com',
-      license='GPL-3.0',
+      license='GPLv3',
       packages=['batch3dfier'],
       classifiers=[
         # How mature is this project? Common values are

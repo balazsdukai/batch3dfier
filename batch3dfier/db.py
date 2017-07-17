@@ -1,32 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""
-/***************************************************************************
- batch3dfier
- 
-        begin                : 2017-06-20
-        copyright            : (C) 2017 by Balázs Dukai, TU Delft
-        email                : balazs.dukai@gmail.com
- ***************************************************************************/
-
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
-"""
-
-__author__ = "Balázs Dukai"
-__copyright__ = "Copyright 2017"
-__licence__ = "GPL3"
-__version__ = "0.2"
-__maintainer__ = "Balázs Dukai"
+"""Database connection class."""
 
 import psycopg2
-from psycopg2 import sql
 
 
 class db(object):
@@ -93,9 +69,9 @@ class db(object):
         nothing
         """
         self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-        schema = sql.Identifier(schema)
-        table = sql.Identifier(table)
-        query = sql.SQL("""
+        schema = psycopg2.sql.Identifier(schema)
+        table = psycopg2.sql.Identifier(table)
+        query = psycopg2.sql.SQL("""
         VACUUM ANALYZE {schema}.{table};
         """).format(schema=schema, table=table)
         self.sendQuery(query)

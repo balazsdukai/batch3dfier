@@ -1,36 +1,10 @@
 # -*- coding: utf-8 -*-
 
+"""Batch create views for the 2D(BAG) tiles.
+
+The module helps you to create tiles in a BAG (https://www.kadaster.nl/wat-is-de-bag)
+database. These tiles are then used by batch3dfier.
 """
-/***************************************************************************
- batch3dfier
- 
-        begin                : 2017-06-20
-        copyright            : (C) 2017 by Balázs Dukai, TU Delft
-        email                : balazs.dukai@gmail.com
- ***************************************************************************/
-
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
-"""
-
-__author__ = "Balázs Dukai"
-__copyright__ = "Copyright 2017"
-__licence__ = "GPL3"
-__version__ = "0.2"
-__maintainer__ = "Balázs Dukai"
-
-
-#===============================================================================
-# Batch create views for the 2D(BAG) tiles.
-# Before running this script, make sure the database is set up according to
-# prep_bag_tiles.sql
-#===============================================================================
 
 from psycopg2 import sql
 

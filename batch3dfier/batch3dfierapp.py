@@ -1,43 +1,23 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
-"""
-/***************************************************************************
- batch3dfier
- 
-        begin                : 2017-06-20
-        copyright            : (C) 2017 by Balázs Dukai, TU Delft
-        email                : balazs.dukai@gmail.com
- ***************************************************************************/
+"""The batch3dfier application."""
 
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
-"""
 
-__author__ = "Balázs Dukai"
-__copyright__ = "Copyright 2017"
-__licence__ = "GPL3"
-__version__ = "0.2"
-__maintainer__ = "Balázs Dukai"
-
-# import sys
-# sys.path.append("/home/bdukai/Development/batch3dfier")
 import os.path
 import queue
 import threading
 import time
 import warnings
-import yaml
 import argparse
 from subprocess import call
+
+import yaml
 from psycopg2 import sql
+
 from batch3dfier import config
 from batch3dfier import db
+
 
 def main():
     #===============================================================================
