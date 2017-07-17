@@ -1,14 +1,15 @@
 input_polygons:
     # Database access for 2D polygons
     database:
-        dbname: bag
+        dbname: bag_current
         host: localhost
         port: "5432"
-        user: bag
+        user: bag_user1
         pw: bag2017
-        tile_schema: bag_tiles  # DB Schema name for the 2D tiles
-    extent: /home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
-    tile_list: # 25gn1, 25ez1 # list of tile IDs as they are in tile_schema | 'all' to use all IDs in tile_index
+        tile_schema: bag_tiles  # Name of the schema that contains the 2D tiles
+        user_schema: user1 # Name of the schema where the user has CREATE and DROP privilege. Mainly relevant when 'extent' is provided.
+    extent: #/home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
+    tile_list: 25gn1, 25ez1 # list of tile IDs as they are in tile_schema | 'all' to use all IDs in tile_index
 
 input_elevation:
     dataset_dir: /home/bdukai/Data/AHN3/ahn_filtered # location of pointcloud files
@@ -28,7 +29,7 @@ tile_index: ["ahn3", "ahn_units"]
 # the same tile index is used for both BAG and AHN.
 
 output:
-    format: CityGML # CSV-BUILDINGS-MULTIPLE # OBJ # CSV-BUILDINGS-MULTIPLE
+    format: CSV-BUILDINGS-MULTIPLE # CSV-BUILDINGS-MULTIPLE # OBJ # CSV-BUILDINGS-MULTIPLE
     dir: /home/bdukai/Data/3DBAG
 
 path_3dfier: /opt/3dfier-0.9.6/build/3dfier # location of the 3dfier executable
