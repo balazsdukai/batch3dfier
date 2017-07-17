@@ -39,8 +39,6 @@ def main():
     CFG_DIR = os.path.dirname(CFG_FILE)
     THREADS = args.threads
     
-    CFG_FILE = "/home/bdukai/Development/batch3dfier/batch3dfier_config.yml"
-    
     stream = open(CFG_FILE, "r")
     cfg = yaml.load(stream)
     

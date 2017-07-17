@@ -9,63 +9,78 @@ database. These tiles are then used by batch3dfier.
 from psycopg2 import sql
 
 
-def create_tile_edges(db):
+def create_tile_edges(db, schema, table, id_col, geom_col):
     """Update tiles to include the lower/left boundary
 
     Parameters
     ----------
     db : db Class instance
-        
+    schema : str
+        Name of the schema that contains the tile polygons.
+    table : str
+        Name of the table in schema that contains the tile polygons.
+    id_col : str
+        The ID field in table.
+    geom_col : str
+        The geometry field in table.
 
     Returns
     -------
     nothing
 
     """
-    db.sendQuery("""ALTER TABLE ahn3.ahn_units
-             ADD COLUMN geom_border geometry;""")
-    db.sendQuery("""
+    schema_q = sql.Identifier(schema)
+    table_q = sql.Identifier(table)
+    geom_col_q = sql.Identifier(geom_col)
+    id_col_q = sql.Identifier(id_col)
+    db.sendQuery(sql.SQL("""ALTER TABLE {}.{}
+             ADD COLUMN geom_border geometry;""").format(schema_q, table_q))
+    db.sendQuery(
+        sql.SQL("""
             UPDATE
-                ahn3.ahn_units
+                {schema}.{table}
             SET
                 geom_border = b.geom::geometry(linestring,28992)
             FROM
                 (
                     SELECT
-                        id,
+                        {id_col},
                         st_setSRID(
                             st_makeline(
                                 ARRAY[st_makepoint(
-                                    st_xmax(geom),
-                                    st_ymin(geom)
+                                    st_xmax({geom_col}),
+                                    st_ymin({geom_col})
                                 ),
                                 st_makepoint(
-                                    st_xmin(geom),
-                                    st_ymin(geom)
+                                    st_xmin({geom_col}),
+                                    st_ymin({geom_col})
                                 ),
                                 st_makepoint(
-                                    st_xmin(geom),
-                                    st_ymax(geom)
+                                    st_xmin({geom_col}),
+                                    st_ymax({geom_col})
                                 ) ]
                             ),
                             28992
                         ) AS geom
                     FROM
-                        ahn3.ahn_units
+                        {schema}.{table}
                 ) b
             WHERE
-                ahn3.ahn_units.id = b.id;
-            """)
+                {schema}.{table}.{id_col} = b.{id_col};
+            """).format(schema=schema_q, table=table_q, geom_col=geom_col_q,
+                        id_col=id_col_q))
+    sql_query = sql.SQL("""
+            CREATE INDEX units_geom_border_idx ON {schema}.{table} USING gist (geom_border);
+            SELECT populate_geometry_columns({}::regclass);
+            """).format(sql.Literal(schema + '.' + table),
+                         schema=schema_q, table=table_q)
+    db.sendQuery(sql_query)
     
-    db.sendQuery("""
-            CREATE INDEX units_geom_border_idx ON ahn3.ahn_units USING gist (geom_border);
-            SELECT populate_geometry_columns('ahn3.ahn_units'::regclass);
-            """)
+#     db.conn.commit()
     
-    db.conn.commit()
-    
-    db.vacuum(schema = "ahn3", table = "ahn_units")
- 
+    db.vacuum(schema, table)
+
+
 
 def create_centroid_table(db):
     """Creates a table of building footprint centroids in a standard BAG database
