@@ -1,31 +1,14 @@
-"""
-/***************************************************************************
- batch3dfier
- 
-        begin                : 2017-06-20
-        copyright            : (C) 2017 by Balázs Dukai, TU Delft
-        email                : balazs.dukai@gmail.com
- ***************************************************************************/
+# -*- coding: utf-8 -*-
 
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
-"""
-
+"""Configure batch3dfier with the input data."""
 
 import os.path
 from subprocess import call
+
 from shapely.geometry import shape
 from shapely import geos
 from psycopg2 import sql
 import fiona
-from batch3dfier import db
-
 
 
 def yamlr(dbname, host, user, pw, tile_schema,
@@ -52,34 +35,34 @@ def yamlr(dbname, host, user, pw, tile_schema,
         pc_dataset += "- " + pc_path[0]
 
     config = """
-input_polygons:
-  - datasets:
-      - "PG:dbname={dbname} host={host} user={user} password={pw} schemas={tile_schema} tables={bag_tile}"
-    uniqueid: identificatie
-    lifting: Building
-
-lifting_options:
-  Building:
-    height_roof: percentile-90
-    height_floor: percentile-10
-    lod: 1
-
-input_elevation:
-  - datasets:
-      {pc_path}
-    omit_LAS_classes:
-      - 1
-    thinning: 0
-
-options:
-  building_radius_vertex_elevation: 2.0
-  radius_vertex_elevation: 1.0
-  threshold_jump_edges: 0.5
-
-output:
-  format: {output_format}
-  building_floor: true
-  vertical_exaggeration: 0
+        input_polygons:
+          - datasets:
+              - "PG:dbname={dbname} host={host} user={user} password={pw} schemas={tile_schema} tables={bag_tile}"
+            uniqueid: identificatie
+            lifting: Building
+        
+        lifting_options:
+          Building:
+            height_roof: percentile-90
+            height_floor: percentile-10
+            lod: 1
+        
+        input_elevation:
+          - datasets:
+              {pc_path}
+            omit_LAS_classes:
+              - 1
+            thinning: 0
+        
+        options:
+          building_radius_vertex_elevation: 2.0
+          radius_vertex_elevation: 1.0
+          threshold_jump_edges: 0.5
+        
+        output:
+          format: {output_format}
+          building_floor: true
+          vertical_exaggeration: 0
         """.format(dbname=dbname, host=host, user=user, pw=pw,
                    tile_schema=tile_schema,
                    bag_tile=bag_tile, pc_path=pc_dataset,
