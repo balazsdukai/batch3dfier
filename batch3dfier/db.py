@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 /***************************************************************************
  batch3dfier
@@ -16,6 +18,13 @@
  *                                                                         *
  ***************************************************************************/
 """
+
+__author__ = "Balázs Dukai"
+__copyright__ = "Copyright 2017"
+__licence__ = "GPL3"
+__version__ = "0.2"
+__maintainer__ = "Balázs Dukai"
+
 import psycopg2
 from psycopg2 import sql
 

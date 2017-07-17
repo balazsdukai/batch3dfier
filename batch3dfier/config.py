@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 /***************************************************************************
  batch3dfier
@@ -17,6 +19,11 @@
  ***************************************************************************/
 """
 
+__author__ = "Balázs Dukai"
+__copyright__ = "Copyright 2017"
+__licence__ = "GPL3"
+__version__ = "0.2"
+__maintainer__ = "Balázs Dukai"
 
 import os.path
 from subprocess import call
@@ -24,6 +31,7 @@ from shapely.geometry import shape
 from shapely import geos
 from psycopg2 import sql
 import fiona
+
 from batch3dfier import db
 
 
@@ -178,7 +186,8 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
         command = (path_3dfier + " {yml} -o {out}").format(
             yml=yml_path, out=output_path)
         try:
-            call(command, shell=True)
+#             call(command, shell=True)
+            print("processing...")
         except:
             print("\nCannot run 3dfier on tile " + tile)
             tile_skipped = tile
