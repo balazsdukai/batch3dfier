@@ -35,20 +35,24 @@ the tiles.
 Install and run
 ---------------
 
-Download the latest release and you can run:
+Download and install the latest release:
 
-``pip3 install batch3dfier-0.2.tar.gz``
+``pip3 install git+https://github.com/balazsdukai/batch3dfier``
 
-Then run *batch3dfier* as:
++ run *batch3dfier* from the command line:
 
-``batch3dfy batch3dfier_config.yml``
+``batch3dfy ./batch3dfier_config.yml``
 
 Where ``batch3dfier_config.yml`` is the YAML configuration file that
 *batch3dfier* uses (similarly to *3dfier*).
 
-Use the ``-h`` flag to get help.
++ get help:
 
-Use the ``-t`` flag to set the number of concurrent threads.
+``batch3dfy -h``
+
++ set the number of concurrent threads (deafult=3):
+
+``batch3dfy -t 4 ./batch3dfier_config.yml``
 
 In the YAML file there are two options to tell batch3dfier what to
 extrude:
