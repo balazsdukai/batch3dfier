@@ -8,7 +8,7 @@ database. These tiles are then used by batch3dfier.
 from psycopg2 import sql
 
 
-def create_edges(db, table_index, fields_index):
+def update_tile_index(db, table_index, fields_index):
     """Update the tile index to include the lower/left boundary of each polygon.
     
     The function is mainly relevant for the tile index of the footprints. 
@@ -20,7 +20,7 @@ def create_edges(db, table_index, fields_index):
     table_index : list of str
         (schema, table) that contains the tile index polygons.
     fields_index: list of str
-        (ID, geometry) field names of the ID and geometry fields in table_index.
+        [ID, geometry, unit] field names of the ID, geometry, name fields in table_index.
 
     Returns
     -------
@@ -90,7 +90,7 @@ def create_edges(db, table_index, fields_index):
     db.vacuum(schema, table)
 
 
-def create_centroid_table(db, table_centroid, table_footprint, fields_footprint):
+def create_centroids(db, table_centroid, table_footprint, fields_footprint):
     """Creates a table of footprint centroids.
     
     The table_centroid is then used by bagtiler().
@@ -99,11 +99,11 @@ def create_centroid_table(db, table_centroid, table_footprint, fields_footprint)
     ----------
     db : db Class instance
     table_centroid : list of str
-        (schema, table) for the new relation that contains the footprint centroids.
+        [schema, table] for the new relation that contains the footprint centroids.
     table_footprint : list of str
-        (schema, table) of the footprints (e.g. building footprints) that will be extruded.
+        [schema, table] of the footprints (e.g. building footprints) that will be extruded.
     fields_footprint : list of str
-        (ID, geometry) field names of the ID geometry fields in table_footprint.
+        [ID, geometry] field names of the ID geometry fields in table_footprint.
 
     Returns
     -------
@@ -163,10 +163,11 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
     table_index : list of str
         [schema, table] of the tile index.
     fields_index : list of str
-        [unit, geometry]
-        Name of the field in table_index that contains the index unit names.
+        [ID, geometry, unit]
+        ID: Name of the ID field.
+        geometry: Name of the geometry field.
+        unit: Name of the field in table_index that contains the index unit names.
         These values are used for the tile names in schema_tiles.
-        Name of the geometry field.
     table_centroid : list of str
         [schema, table] of the footprint centroids.
     fields_centroid : list of str
@@ -194,7 +195,7 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
     
     schema_idx_q = sql.Identifier(table_index[0])
     table_idx_q = sql.Identifier(table_index[1])
-    field_idx_q =sql.Identifier(fields_index[0])
+    field_idx_unit_q = sql.Identifier(fields_index[2])
     field_idx_geom_q = sql.Identifier(fields_index[1])
 
     schema_ctr_q = sql.Identifier(table_centroid[0])
@@ -227,7 +228,7 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
         
     # Get footprint index unit names
     tiles = db.getQuery(
-        sql.SQL("SELECT {} FROM {}.{};").format(field_idx_q, schema_idx_q,
+        sql.SQL("SELECT {} FROM {}.{};").format(field_idx_unit_q, schema_idx_q,
                                                 table_idx_q)
                         )
     tiles = [str(i[0]) for i in tiles]
@@ -273,7 +274,7 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
                                           field_ctr_id=field_ctr_id_q,
                                           schema_idx=schema_idx_q,
                                           table_idx=table_idx_q,
-                                          field_idx=field_idx_q,
+                                          field_idx=field_idx_unit_q,
                                           tile=tile,
                                           field_idx_geom=field_idx_geom_q,
                                           field_ctr_geom=field_ctr_geom_q
@@ -285,3 +286,55 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
     except:
         print("Cannot create Views in schema '%s'" % schema_tiles)
 
+
+
+def partition(db, schema_tiles, table_index, fields_index, table_footprint,
+              fields_footprint, prefix_tiles):
+    """Partitions geometries in a 2D footprint table into tiles.
+    
+    Adds a geometry column to table_index.
+    Creates a new table <table_footprint>_centroid in the schema of table_footprint.
+    Creates a View for each tile in table_index, generating names from fields_index[2].
+
+    Parameters
+    ----------
+    db : db Class instance
+    schema_tiles : str 
+        Name of the schema where to create the tiles.
+    table_index : list of str
+        [schema, table] of the tile index.
+    fields_index : list of str
+        [ID, geometry, unit]
+        ID: Name of the ID field.
+        geometry: Name of the geometry field.
+        unit: Name of the field in table_index that contains the index unit names.
+        These values are used for the tile names in schema_tiles.
+    table_footprint : list of str
+        [schema, table] of the footprints (e.g. building footprints) that will be extruded.
+    fields_footprint : list of str
+        [ID, geometry, ...]
+        Names of the fields that should be selected into the View. Must contain
+        at least an ID and a geometry field, where ID is the field that can be joined on 
+        table_centroid.
+    prefix_tiles : str, None
+        Prefix to prepend to the view names. If None, the views are named as 
+        the values in fields_index[2].
+
+    Returns
+    -------
+    nothing
+
+    """
+    
+    tbl_ctr = table_footprint[1] + "_centroid"
+    table_centroid = [table_footprint[0], tbl_ctr]
+    fields_centroid = [fields_footprint[0], 'geom']
+    
+    update_tile_index(db, table_index, fields_index)
+    
+    create_centroids(db, table_centroid, table_footprint, fields_footprint)
+    
+    create_views(db, schema_tiles, table_index, fields_index, table_centroid,
+                 fields_centroid, table_footprint, fields_footprint,
+                 prefix_tiles)
+    
