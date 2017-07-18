@@ -20,17 +20,39 @@ Setting up a BAG database
 
 As noted above, I used the PostgreSQL dump provided at
 http://data.nlextract.nl/bag/postgis/. The dump was restored with the
-command
+command:
 
 ``pg_restore --no-owner --no-privileges -d bag bag-laatst.backup``
 
-The additional and required settings are described in
-`prep\_bag\_tiles.sql <https://github.com/balazsdukai/batch3dfier/blob/master/prep_bag_tiles.sql>`__.
-You'll find the same commands wrapped in functions in the ``bagtiler``
-module if you want to use them in a script.
+After, a *tile index* of the 2D footprints needs to be loaded into the database.
+For example:
 
-As the last step, ``bagtiler.bagtiler()`` has to create the *views* for
-the tiles.
+   ::
+   
+      ogr2ogr -f PostgreSQL PG:"dbname=batch3dfier_testing active_schema=tile_index\
+       host=localhost port=5432 user=batch3dfier_tester password=batch3d_test"\
+       ./data/bag_index.geojson -nln bag_index\
+       -skip-failure -a_srs EPSG:28992 -lco FID=gid -lco GEOMETRY_NAME=geom
+
+A *tile index* is a dataset of rectangular polygons (or tiles) that partition the 2D footprints dataset.
+The ``footprints`` module helps you to generate database *views* for each tile in *tile_index*.
+These *views* then serve as an input for *3dfier*.
+Usage:
+
+   ::
+   
+      bag_index = ['tile_index', 'bag_index']
+      bag_fields = ['gid', 'geom', 'unit']
+      table_footprint = ['bagactueel', 'pand']
+      fields_footprint = ['gid', 'geovlak', 'identificatie']
+      schema_tiles = 'bag_tiles'
+      prefix_tiles = 't_'
+      
+      footprints.partition(dbs, schema_tiles=schema_tiles, table_index=bag_index,
+                           fields_index=bag_fields, table_footprint=table_footprint,
+                           fields_footprint=fields_footprint,
+                           prefix_tiles=prefix_tiles)
+
 
 Install and run
 ---------------
