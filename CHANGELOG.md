@@ -13,7 +13,7 @@ Completely revamped `bagtiler` module
 
 ### Added
 - `footprints.partition()` for one-step footprint partitioning
-- tests for `footprints`
+- unit tests for `footprints`
 
 ## [0.3.1] - 2017-07-17
 ### Changed
