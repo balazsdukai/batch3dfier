@@ -132,8 +132,7 @@ def main():
     #===========================================================================
     if EXTENT_FILE:
         pc_tiles = config.get_2Dtiles(ewkb=ewkb, db=dbase,
-                                                  tile_index=PC_TILE_INDEX)
-        print(pc_tiles)
+                                      tile_index=PC_TILE_INDEX)
     #===============================================================================
     # Process multiple threads
     # reference: http://www.tutorialspoint.com/python3/python_multithreading.htm
