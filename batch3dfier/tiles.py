@@ -6,10 +6,9 @@ The module helps you to create tiles in a BAG (https://www.kadaster.nl/wat-is-de
 database. These tiles are then used by batch3dfier.
 """
 from psycopg2 import sql
-from string import digits
 
 
-def create_tile_edges(db, table_index, fields_index):
+def create_edges(db, table_index, fields_index):
     """Update the tile index to include the lower/left boundary of each polygon.
     
     The function is mainly relevant for the tile index of the footprints. 
@@ -151,7 +150,7 @@ def create_centroid_table(db, table_centroid, table_footprint, fields_footprint)
     db.vacuum(schema_ctr, table_ctr)
 
 
-def create_tile_views(db, schema_tiles, table_index, fields_index, table_centroid,
+def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
              fields_centroid, table_footprint, fields_footprint,
              prefix_tiles='t_'):
     """Creates PostgreSQL Views for the footprint tiles.
