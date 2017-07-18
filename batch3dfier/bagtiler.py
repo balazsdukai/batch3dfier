@@ -5,130 +5,149 @@
 The module helps you to create tiles in a BAG (https://www.kadaster.nl/wat-is-de-bag)
 database. These tiles are then used by batch3dfier.
 """
-
 from psycopg2 import sql
 
 
-def create_tile_edges(db, schema, table, id_col, geom_col):
-    """Update tiles to include the lower/left boundary
+def create_tile_edges(db, table_index, fields_index):
+    """Update the tile index to include the lower/left boundary of each polygon.
+    
+    The function is mainly relevant for the tile index of the footprints. 
+    The tile edges are then used for checking centroid containment in a tile polygon.
 
     Parameters
     ----------
     db : db Class instance
-    schema : str
-        Name of the schema that contains the tile polygons.
-    table : str
-        Name of the table in schema that contains the tile polygons.
-    id_col : str
-        The ID field in table.
-    geom_col : str
-        The geometry field in table.
+    table_index : tuple of str
+        (schema, table) that contains the tile index polygons.
+    fields_index: tuple of str
+        (ID, geometry) field names of the ID and geometry fields in table_index.
 
     Returns
     -------
     nothing
 
     """
+    schema = table_index[0]
+    table = table_index[1]
+    id_col = fields_index[0]
+    geom_col = fields_index[1]
+    
     schema_q = sql.Identifier(schema)
     table_q = sql.Identifier(table)
     geom_col_q = sql.Identifier(geom_col)
     id_col_q = sql.Identifier(id_col)
+    
     db.sendQuery(sql.SQL("""ALTER TABLE {}.{}
              ADD COLUMN geom_border geometry;""").format(schema_q, table_q))
+    
     db.sendQuery(
         sql.SQL("""
-            UPDATE
-                {schema}.{table}
-            SET
-                geom_border = b.geom::geometry(linestring,28992)
-            FROM
-                (
-                    SELECT
-                        {id_col},
-                        st_setSRID(
-                            st_makeline(
-                                ARRAY[st_makepoint(
-                                    st_xmax({geom_col}),
-                                    st_ymin({geom_col})
+                UPDATE
+                    {schema}.{table}
+                SET
+                    geom_border = b.geom::geometry(linestring,28992)
+                FROM
+                    (
+                        SELECT
+                            {id_col},
+                            st_setSRID(
+                                st_makeline(
+                                    ARRAY[st_makepoint(
+                                        st_xmax({geom_col}),
+                                        st_ymin({geom_col})
+                                    ),
+                                    st_makepoint(
+                                        st_xmin({geom_col}),
+                                        st_ymin({geom_col})
+                                    ),
+                                    st_makepoint(
+                                        st_xmin({geom_col}),
+                                        st_ymax({geom_col})
+                                    ) ]
                                 ),
-                                st_makepoint(
-                                    st_xmin({geom_col}),
-                                    st_ymin({geom_col})
-                                ),
-                                st_makepoint(
-                                    st_xmin({geom_col}),
-                                    st_ymax({geom_col})
-                                ) ]
-                            ),
-                            28992
-                        ) AS geom
-                    FROM
-                        {schema}.{table}
-                ) b
-            WHERE
-                {schema}.{table}.{id_col} = b.{id_col};
-            """).format(schema=schema_q, table=table_q, geom_col=geom_col_q,
-                        id_col=id_col_q))
+                                28992
+                            ) AS geom
+                        FROM
+                            {schema}.{table}
+                    ) b
+                WHERE
+                    {schema}.{table}.{id_col} = b.{id_col};
+                """).format(schema=schema_q,
+                            table=table_q,
+                            geom_col=geom_col_q,
+                            id_col=id_col_q)
+                 )
+    
     sql_query = sql.SQL("""
-            CREATE INDEX units_geom_border_idx ON {schema}.{table} USING gist (geom_border);
-            SELECT populate_geometry_columns({}::regclass);
-            """).format(sql.Literal(schema + '.' + table),
-                         schema=schema_q, table=table_q)
+            CREATE INDEX {idx_name} ON {schema}.{table} USING gist (geom_border);
+            SELECT populate_geometry_columns({name}::regclass);
+            """).format(idx_name=sql.Identifier(table + "_" + geom_col + "_border_idx"),
+                        schema=schema_q,
+                        table=table_q,
+                        name=sql.Literal(schema + '.' + table))
     db.sendQuery(sql_query)
     
     db.vacuum(schema, table)
 
 
-def create_centroid_table(db, schema, table_centroid, table_poly, id_col, geom_col):
-    """Creates a table of building footprint centroids in a standard BAG database
+def create_centroid_table(db, table_centroid, table_footprint, fields_footprint):
+    """Creates a table of footprint centroids.
+    
+    The table_centroid is then used by bagtiler().
 
     Parameters
     ----------
     db : db Class instance
-    schema : str
-        Name of the schema that contains the 2D polygons.
-    table_centroid : str
-        Name of the new table that contains the 2D polygon centroids.
-    table_poly : str
-        Name of the table of the 2D polygons.
-    geom_col : str
-        The geometry field in table_poly.
+    table_centroid : tuple of str
+        (schema, table) for the new relation that contains the footprint centroids.
+    table_footprint : tuple of str
+        (schema, table) of the footprints (e.g. building footprints) that will be extruded.
+    fields_footprint : tuple of str
+        (ID, geometry) field names of the ID geometry fields in table_footprint.
 
     Returns
     -------
-    boolean
-        indicating success/failure
+    nothing
 
     """
-    schema_q = sql.Identifier(schema)
-    table_centroid_q = sql.Identifier(table_centroid)
+    schema_ctr = table_centroid[0]
+    table_ctr = table_centroid[1]
+    schema_poly = table_footprint[0]
+    table_poly = table_footprint[1]
+    id_col = fields_footprint[0]
+    geom_col = fields_footprint[1]
+    
+    schema_ctr_q = sql.Identifier(schema_ctr)
+    table_ctr_q = sql.Identifier(table_ctr)
+    schema_poly_q = sql.Identifier(schema_poly)
     table_poly_q = sql.Identifier(table_poly)
     geom_col_q = sql.Identifier(geom_col)
     id_col_q = sql.Identifier(id_col)
     
     sql_query = sql.SQL("""
-        CREATE TABLE {schema}.{table_centroid} AS
+        CREATE TABLE {schema_ctr}.{table_ctr} AS
             SELECT {id_col}, st_centroid({geom_col})::geometry(point, 28992) AS geom
-            FROM {schema}.{table_poly};
+            FROM {schema_poly}.{table_poly};
         
         SELECT populate_geometry_columns({sch_tbl}::regclass);
         
         CREATE
             INDEX {tbl_idx} ON
-            {schema}.{table_centroid}
+            {schema_ctr}.{table_ctr}
                 USING gist(geom);
-        """).format(schema=schema_q,
-                    table_centroid=table_centroid_q,
-                    geom_col=geom_col_q,
+        """).format(schema_ctr=schema_ctr_q,
+                    table_ctr=table_ctr_q,
                     id_col=id_col_q,
+                    geom_col=geom_col_q,
+                    schema_poly=schema_poly_q,
                     table_poly=table_poly_q,
-                    sch_tbl=sql.Literal(schema + '.' + table_centroid),
-                    tbl_idx=sql.Identifier(table_centroid + '_geom_idx')
+                    sch_tbl=sql.Literal(schema_ctr + '.' + table_ctr),
+                    tbl_idx=sql.Identifier(table_ctr + '_geom_idx')
                     )
         
     db.sendQuery(sql_query)
     
-    db.vacuum(schema, table_centroid)
+    db.vacuum(schema_ctr, table_ctr)
 
 
 def bagtiler(db, schema_tiles, tile_index, centroid_table):
@@ -142,7 +161,7 @@ def bagtiler(db, schema_tiles, tile_index, centroid_table):
     tile_index : tuple
         (schema, table, field) that contains the tile index.
     centroid_table : tuple
-        (schema, table) that contains the 2D polygon centroids.
+        (schema, table) that contains the footprint centroids.
 
     Returns
     -------
