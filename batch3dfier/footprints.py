@@ -281,10 +281,10 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
                                           )
             db.sendQuery(query)
     
-        print("%s Views created in schema '%s'." % (len(tiles), schema_tiles))
+        return("%s Views created in schema '%s'." % (len(tiles), schema_tiles))
         
     except:
-        print("Cannot create Views in schema '%s'" % schema_tiles)
+        return("Cannot create Views in schema '%s'" % schema_tiles)
 
 
 
