@@ -182,10 +182,10 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
 
 
 
-def find_pc_tiles(db, pc_tile_index, extent_ewkb):
+def find_pc_tiles(db, pc_table_index, pc_fields_index, extent_ewkb):
     """Find pointcloud tiles in tile index that overlap the exent or footprint tile
     """
-    tiles = get_2Dtiles(db, pc_tile_index, pc_fi extent_ewkb)
+    tiles = get_2Dtiles(db, pc_table_index, pc_fields_index, extent_ewkb)
     
     return(tiles)
     
@@ -196,7 +196,7 @@ def find_pc_files():
     pass
 
 
-def get_2Dtile_area(db, tile_index):
+def get_2Dtile_area(db, table_index):
     """Get the area of a 2D tile.
     
     Note
@@ -206,16 +206,16 @@ def get_2Dtile_area(db, tile_index):
     Parameters
     ----------
     db : db Class instance
-    tile_index : tuple
-        As (schema name, table name) of the table of tile index.
+    table_index : list of str
+        [schema name, table name] of the table of tile index.
 
     Returns
     -------
     float
 
     """
-    schema = sql.Identifier(tile_index[0])
-    table = sql.Identifier(tile_index[1])
+    schema = sql.Identifier(table_index[0])
+    table = sql.Identifier(table_index[1])
 
     query = sql.SQL("""
                 SELECT public.st_area(geom) AS area
@@ -226,7 +226,7 @@ def get_2Dtile_area(db, tile_index):
 
     return(area)
 
-def polygon_to_ewkb(db, tile_index, file):
+def polygon_to_ewkb(db, table_index, file):
     """Reads a polygon from a file and returns its EWKB.
     
     I didn't find a simple way to safely get SRIDs from the input geometry 
@@ -236,18 +236,18 @@ def polygon_to_ewkb(db, tile_index, file):
     Parameters
     ----------
     db : db Class instance
-    tile_index : list of str
+    table_index : list of str
         [schema, table name] of the table of tile index.
     file : str
         Path to the polygon for clipping the input.
-        Must be in the same CRS as the tile_index.
+        Must be in the same CRS as the table_index.
         
     Returns
     -------
     [Shapely polygon, EWKB str]
     """
-    schema = sql.Identifier(tile_index[0])
-    table = sql.Identifier(tile_index[1])
+    schema = sql.Identifier(table_index[0])
+    table = sql.Identifier(table_index[1])
     
     query = sql.SQL("""SELECT st_srid(geom) AS srid
                     FROM {schema}.{table}
@@ -279,7 +279,7 @@ def get_2Dtiles(db, table_index, fields_index, ewkb):
     fields_index : list of str
         [ID, geometry, unit]
         ID: Name of the ID field in table_index.
-        geometry: Name of the geometry field in tile_index.
+        geometry: Name of the geometry field in table_index.
         unit: Name of the field in table_index that contains the index unit names.
     ewkb : str
         EWKB representation of a polygon.
@@ -299,7 +299,7 @@ def get_2Dtiles(db, table_index, fields_index, ewkb):
     # TODO: user input for a.unit
     query = sql.SQL("""
                 SELECT {table}.{field_idx_unit}
-                FROM {schema}.{table} as a
+                FROM {schema}.{table}
                 WHERE st_intersects({table}.{field_idx_geom}, {ewkb}::geometry);
                 """).format(schema=schema,
                             table=table,

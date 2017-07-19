@@ -20,7 +20,7 @@ def update_tile_index(db, table_index, fields_index):
     table_index : list of str
         (schema, table) that contains the tile index polygons.
     fields_index: list of str
-        [ID, geometry, unit] field names of the ID, geometry, name fields in table_index.
+        [ID, geometry, unit] field names of the ID, geometry, tile unit name fields in table_index.
 
     Returns
     -------
