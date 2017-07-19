@@ -70,6 +70,7 @@ def yamlr(dbname, host, user, pw, tile_schema,
     return(config)
 
 
+
 def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
                pc_dir, tile_case, yml_dir, dbname, host, user, pw,
                tile_schema, output_format, output_dir, path_3dfier):
@@ -96,44 +97,51 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
         was found in 'dataset_dir' (YAML)
 
     """
-
     tile_skipped = None
+    
+    pc_path, tile_out, tile_skipped = find_pc_tiles()
+    pc_path = find_pc_files()
+    
+    
 
-    # Prepare AHN file names ---------------------------------------------------
-    if union_view:
-    # FIXME: add or condition to include tiles_clipped
-        # Prepare pointcloud file names for searching them in dataset_dir
-        # the output of this block is only passed to
-        tile_out = "output_batch3dfier"
-        if tile_case == "upper":
-            tiles = [pc_file_name.format(tile=t.upper()) for t in tiles]
-        elif tile_case == "lower":
-            tiles = [pc_file_name.format(tile=t.lower()) for t in tiles]
-        elif tile_case == "mixed":
-            tiles = [pc_file_name.format(tile=t) for t in tiles]
-        else:
-            raise "Please provide one of the allowed values for tile_case."
-        # use the tile list in tiles to parse the pointcloud file names
-        pc_path = [os.path.join(pc_dir, pc_tile) for pc_tile in tiles]
-    else:
-        # name of the 3D output matches the view name of the 2D tile
-        tile_out = tile.replace(clip_prefix, '', 1)
-        # Prepare pointcloud file names for searching them in dataset_dir
-        # FIXME: do this properly without hard-coding the tile view prefix
-        ptile = tile_out.replace('t_', '', 1)
-        if tile_case == "upper":
-            pc_tile = pc_file_name.format(tile=ptile.upper())
-        elif tile_case == "lower":
-            pc_tile = pc_file_name.format(tile=ptile.lower())
-        elif tile_case == "mixed":
-            pc_tile = pc_file_name.format(tile=ptile)
-        else:
-            raise "Please provide one of the allowed values for tile_case."
-        pc_path = [os.path.join(pc_dir, pc_tile)]
+
+#     # Prepare AHN file names ---------------------------------------------------
+#     if union_view:
+#     # FIXME: add or condition to include tiles_clipped
+#         # Prepare pointcloud file names for searching them in dataset_dir
+#         # the output of this block is only passed to
+#         tile_out = "output_batch3dfier"
+#         if tile_case == "upper":
+#             tiles = [pc_file_name.format(tile=t.upper()) for t in tiles]
+#         elif tile_case == "lower":
+#             tiles = [pc_file_name.format(tile=t.lower()) for t in tiles]
+#         elif tile_case == "mixed":
+#             tiles = [pc_file_name.format(tile=t) for t in tiles]
+#         else:
+#             raise "Please provide one of the allowed values for tile_case."
+#         # use the tile list in tiles to parse the pointcloud file names
+#         pc_path = [os.path.join(pc_dir, pc_tile) for pc_tile in tiles]
+#     else:
+#         # name of the 3D output matches the view name of the 2D tile
+#         tile_out = tile.replace(clip_prefix, '', 1)
+#         # Prepare pointcloud file names for searching them in dataset_dir
+#         # FIXME: do this properly without hard-coding the tile view prefix
+#         ptile = tile_out.replace('t_', '', 1)
+#         if tile_case == "upper":
+#             pc_tile = pc_file_name.format(tile=ptile.upper())
+#         elif tile_case == "lower":
+#             pc_tile = pc_file_name.format(tile=ptile.lower())
+#         elif tile_case == "mixed":
+#             pc_tile = pc_file_name.format(tile=ptile)
+#         else:
+#             raise "Please provide one of the allowed values for tile_case."
+#         pc_path = [os.path.join(pc_dir, pc_tile)]
 
     # Call 3dfier --------------------------------------------------------------
     # Check if the required AHN3 file exists in pc_path
-    if all([os.path.isfile(p) for p in pc_path]):
+#     if all([os.path.isfile(p) for p in pc_path]):
+    
+    if pc_path:
         # Needs a YAML per thread so one doesn't overwrite it while the other
         # uses it
         yml_name = thread + "_config.yml"
@@ -147,7 +155,7 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
             with open(yml_path, "w") as text_file:
                 text_file.write(config)
         except:
-            print("Error: cannot write tempconfig.yml")
+            print("Error: cannot write _config.yml")
         # Prep output file name
         if "obj" in output_format.lower():
             o = tile_out + ".obj"
@@ -165,12 +173,27 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
         except:
             print("\nCannot run 3dfier on tile " + tile)
             tile_skipped = tile
-    else:
-        print("\nPointcloud file " + pc_tile +
-              " not available. Skipping tile.\n")
-        tile_skipped = tile
+#     else:
+#         print("\nPointcloud file " + pc_tile +
+#               " not available. Skipping tile.\n")
+#         tile_skipped = tile
 
     return(tile_skipped)
+
+
+
+def find_pc_tiles(db, pc_tile_index, extent_ewkb):
+    """Find pointcloud tiles in tile index that overlap the exent or footprint tile
+    """
+    tiles = get_2Dtiles(db, pc_tile_index, pc_fi extent_ewkb)
+    
+    return(tiles)
+    
+
+def find_pc_files():
+    """Find pointcloud files in the file system when given a list of tiles
+    """
+    pass
 
 
 def get_2Dtile_area(db, tile_index):
@@ -206,18 +229,18 @@ def get_2Dtile_area(db, tile_index):
 def polygon_to_ewkb(db, tile_index, file):
     """Reads a polygon from a file and returns its EWKB.
     
-    I didn't find a simple way to safely get SRIDs from the input geometry, 
-    therefore it is obtained from the database and the CRS of the polygon is 
-    assumed to be the same as of the tile indexes.
+    I didn't find a simple way to safely get SRIDs from the input geometry 
+    with Shapely, therefore it is obtained from the database and the CRS of the 
+    polygon is assumed to be the same as of the tile indexes.
     
     Parameters
     ----------
-    file : str
-        Path to the polygon for clipping the input.
-        Must be in the same CRS as the tile_index.
     db : db Class instance
     tile_index : list of str
         [schema, table name] of the table of tile index.
+    file : str
+        Path to the polygon for clipping the input.
+        Must be in the same CRS as the tile_index.
         
     Returns
     -------
@@ -230,6 +253,8 @@ def polygon_to_ewkb(db, tile_index, file):
                     FROM {schema}.{table}
                     LIMIT 1;""").format(schema=schema, table=table)
     srid = db.getQuery(query)[0][0]
+    
+    assert srid is not None
 
     # Get clip polygon and set SRID
     with fiona.open(file, 'r') as src:
@@ -243,40 +268,44 @@ def polygon_to_ewkb(db, tile_index, file):
     return([poly, ewkb])
 
 
-def get_2Dtiles(db, tile_index, ewkb):
-    """Returns a list of tiles that overlap the output extent. Returns the output extent as Shapely polygon.
+def get_2Dtiles(db, table_index, fields_index, ewkb):
+    """Returns a list of tiles that overlap the output extent.
 
     Parameters
     ----------
-    file : str
-        Path to the polygon for clipping the input.
-        Must be in the same CRS as the tile_index.
+    db : db Class instance
+    table_index : list of str
+        [schema, table name] of the table of tile index.
+    fields_index : list of str
+        [ID, geometry, unit]
+        ID: Name of the ID field in table_index.
+        geometry: Name of the geometry field in tile_index.
+        unit: Name of the field in table_index that contains the index unit names.
     ewkb : str
         EWKB representation of a polygon.
-    db : db Class instance
-    tile_index : list of str
-        [schema, table name] of the table of tile index.
 
     Returns
     -------
-    if file:
-        [[tile IDs], Shapely polygon, EWKB]
-            Tiles that are intersected by the polygon that is provided in
-            'extent' (YAML).
-    if ewkb:
-        [tile IDs]
+    [tile IDs]
+        Tiles that are intersected by the polygon that is provided in 'extent' (YAML).
 
     """
-    schema = sql.Identifier(tile_index[0])
-    table = sql.Identifier(tile_index[1])
+    schema = sql.Identifier(table_index[0])
+    table = sql.Identifier(table_index[1])
+    field_idx_geom_q = sql.Identifier(fields_index[1])
+    field_idx_unit_q = sql.Identifier(fields_index[2])
     
     ewkb_q = sql.Literal(ewkb)
     # TODO: user input for a.unit
     query = sql.SQL("""
-                SELECT a.unit
+                SELECT {table}.{field_idx_unit}
                 FROM {schema}.{table} as a
-                WHERE st_intersects(a.geom, {ewkb}::geometry);
-                """).format(schema=schema, table=table, ewkb=ewkb_q)
+                WHERE st_intersects({table}.{field_idx_geom}, {ewkb}::geometry);
+                """).format(schema=schema,
+                            table=table,
+                            field_idx_unit=field_idx_unit_q,
+                            field_idx_geom=field_idx_geom_q,
+                            ewkb=ewkb_q)
     resultset = db.getQuery(query)
     tiles = [tile[0] for tile in resultset]
 
