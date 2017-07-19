@@ -92,7 +92,7 @@ def main():
     #===========================================================================
     # TODO: assert that CREATE/DROP allowed on TILE_SCHEMA and/or USER_SCHEMA
     if EXTENT_FILE:
-        poly, ewkb = config.polygon_to_ewkb(dbase, POLY_TILE_INDEX, EXTENT_FILE)
+        poly, ewkb = config.extent_to_ewkb(dbase, POLY_TILE_INDEX, EXTENT_FILE)
         
         tiles = config.get_2Dtiles(dbase, POLY_TILE_INDEX, ewkb)
     

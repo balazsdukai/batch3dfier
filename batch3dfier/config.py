@@ -182,51 +182,65 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
 
 
 
-def find_pc_tiles(db, pc_table_index, pc_fields_index, extent_ewkb):
-    """Find pointcloud tiles in tile index that overlap the exent or footprint tile
-    """
-    tiles = get_2Dtiles(db, pc_table_index, pc_fields_index, extent_ewkb)
-    
-    return(tiles)
-    
-
 def find_pc_files():
     """Find pointcloud files in the file system when given a list of tiles
     """
     pass
 
 
-def get_2Dtile_area(db, table_index):
-    """Get the area of a 2D tile.
-    
-    Note
-    ----
-    Assumes that all tiles have equal area. Area is in units of the tile CRS.
 
-    Parameters
-    ----------
-    db : db Class instance
-    table_index : list of str
-        [schema name, table name] of the table of tile index.
-
-    Returns
-    -------
-    float
-
+def find_pc_tiles(db, table_index_pc, fields_index_pc,
+                  table_index_footprint=None, fields_index_footprint=None,
+                   extent_ewkb=None, footprint_tile=None):
+    """Find pointcloud tiles in tile index that intersect the extent or the footprint tile.
     """
-    schema = sql.Identifier(table_index[0])
-    table = sql.Identifier(table_index[1])
+    if extent_ewkb:
+        assert footprint_tile is None
+        tiles = get_2Dtiles(db, table_index_pc, fields_index_pc, extent_ewkb)
+    else:
+        schema_pc_q = sql.Identifier(table_index_pc[0])
+        table_pc_q = sql.Identifier(table_index_pc[1])
+        field_pc_geom_q = sql.Identifier(fields_index_pc[1])
+        field_pc_unit_q = sql.Identifier(fields_index_pc[2])
+        
+        schema_ftpr_q = sql.Identifier(table_index_footprint[0])
+        table_ftpr_q = sql.Identifier(table_index_footprint[1])
+        field_ftpr_geom_q = sql.Identifier(fields_index_footprint[1])
+        field_ftpr_unit_q = sql.Identifier(fields_index_footprint[2])
+        
+        tile_q = sql.Literal(footprint_tile)
+        
+        query = sql.SQL("""
+                            SELECT
+                            {table_pc}.{field_pc_unit}
+                        FROM
+                            {schema_pc}.{table_pc},
+                            {schema_ftpr}.{table_ftpr}
+                        WHERE
+                            {table_ftpr}.{field_ftpr_unit} = {tile}
+                            AND st_intersects(
+                                {table_pc}.{field_pc_geom},
+                                {table_ftpr}.{field_ftpr_geom}
+                            );
+                        """).format(table_pc=table_pc_q,
+                                    field_pc_unit=field_pc_unit_q,
+                                    schema_pc=schema_pc_q,
+                                    schema_ftpr=schema_ftpr_q,
+                                    table_ftpr=table_ftpr_q,
+                                    field_ftpr_unit=field_ftpr_unit_q,
+                                    tile=tile_q,
+                                    field_pc_geom=field_pc_geom_q,
+                                    field_ftpr_geom=field_ftpr_geom_q)
+                        
+        resultset = db.getQuery(query)
+        tiles = [tile[0] for tile in resultset]
+    
+    return(tiles)
+    
 
-    query = sql.SQL("""
-                SELECT public.st_area(geom) AS area
-                FROM {schema}.{table}
-                LIMIT 1;
-                """).format(schema=schema, table=table)
-    area = db.getQuery(query)[0][0]
 
-    return(area)
 
-def polygon_to_ewkb(db, table_index, file):
+def extent_to_ewkb(db, table_index, file):
     """Reads a polygon from a file and returns its EWKB.
     
     I didn't find a simple way to safely get SRIDs from the input geometry 
@@ -266,6 +280,7 @@ def polygon_to_ewkb(db, table_index, file):
         ewkb = poly.wkb_hex
     
     return([poly, ewkb])
+
 
 
 def get_2Dtiles(db, table_index, fields_index, ewkb):
@@ -312,6 +327,39 @@ def get_2Dtiles(db, table_index, fields_index, ewkb):
     print("Nr. of tiles in clip extent: " + str(len(tiles)))
 
     return(tiles)
+
+
+
+def get_2Dtile_area(db, table_index):
+    """Get the area of a 2D tile.
+    
+    Note
+    ----
+    Assumes that all tiles have equal area. Area is in units of the tile CRS.
+
+    Parameters
+    ----------
+    db : db Class instance
+    table_index : list of str
+        [schema name, table name] of the table of tile index.
+
+    Returns
+    -------
+    float
+
+    """
+    schema = sql.Identifier(table_index[0])
+    table = sql.Identifier(table_index[1])
+
+    query = sql.SQL("""
+                SELECT public.st_area(geom) AS area
+                FROM {schema}.{table}
+                LIMIT 1;
+                """).format(schema=schema, table=table)
+    area = db.getQuery(query)[0][0]
+
+    return(area)
+
 
 
 def get_2Dtile_views(db, tile_schema, tiles):
