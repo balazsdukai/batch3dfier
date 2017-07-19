@@ -34,8 +34,8 @@ def parse_console_args():
     
     args = parser.parse_args()
     args_in = {}
-    CFG_FILE = os.path.abspath(args.config)
-    args_in['cfg_dir'] = os.path.dirname(CFG_FILE)
+    args_in['cfg_file'] = os.path.abspath(args.config)
+    args_in['cfg_dir'] = os.path.dirname(args_in['cfg_file'])
     args_in['threads'] = args.threads
     
     return(args_in)
@@ -47,7 +47,7 @@ def parse_config_yaml(args_in):
     #===========================================================================
     cfg = {}
     
-    stream = open(args_in['cfg_dir'], "r")
+    stream = open(args_in['cfg_file'], "r")
     cfg_stream = yaml.load(stream)
     
     cfg['pc_file_name'] = cfg_stream["input_elevation"]["dataset_name"]

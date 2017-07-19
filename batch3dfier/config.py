@@ -34,35 +34,38 @@ def yamlr(dbname, host, user, pw, schema_tiles,
     else:
         pc_dataset += "- " + pc_path[0]
 
+    # !!! Do not correct the indentation of the config template, otherwise it 
+    # results in 'YAML::TypedBadConversion<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >'
+    # because every line is indented as here
     config = """
-        input_polygons:
-          - datasets:
-              - "PG:dbname={dbname} host={host} user={user} password={pw} schemas={schema_tiles} tables={bag_tile}"
-            uniqueid: identificatie
-            lifting: Building
-        
-        lifting_options:
-          Building:
-            height_roof: percentile-90
-            height_floor: percentile-10
-            lod: 1
-        
-        input_elevation:
-          - datasets:
-              {pc_path}
-            omit_LAS_classes:
-              - 1
-            thinning: 0
-        
-        options:
-          building_radius_vertex_elevation: 2.0
-          radius_vertex_elevation: 1.0
-          threshold_jump_edges: 0.5
-        
-        output:
-          format: {output_format}
-          building_floor: true
-          vertical_exaggeration: 0
+input_polygons:
+  - datasets:
+      - "PG:dbname={dbname} host={host} user={user} password={pw} schemas={schema_tiles} tables={bag_tile}"
+    uniqueid: identificatie
+    lifting: Building
+
+lifting_options:
+  Building:
+    height_roof: percentile-90
+    height_floor: percentile-10
+    lod: 1
+
+input_elevation:
+  - datasets:
+      {pc_path}
+    omit_LAS_classes:
+      - 1
+    thinning: 0
+
+options:
+  building_radius_vertex_elevation: 2.0
+  radius_vertex_elevation: 1.0
+  threshold_jump_edges: 0.5
+
+output:
+  format: {output_format}
+  building_floor: true
+  vertical_exaggeration: 0
         """.format(dbname=dbname, host=host, user=user, pw=pw,
                    schema_tiles=schema_tiles,
                    bag_tile=bag_tile, pc_path=pc_dataset,
