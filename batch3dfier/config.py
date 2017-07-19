@@ -115,7 +115,7 @@ def call_3dfier(db, tile, schema_tiles,
                              table_index_footprint, fields_index_footprint,
                              extent_ewkb, footprint_tile=tile)
     
-    pc_path = find_pc_files(pc_tiles)
+    pc_path = find_pc_files(pc_tiles, pc_dir, pc_file_name, pc_tile_case)
     
     # prepare output file name
     if not tile_out:
@@ -159,8 +159,9 @@ def call_3dfier(db, tile, schema_tiles,
         print("\nPointcloud file(s) " + pc_tiles +
               " not available. Skipping tile.\n")
         tile_skipped = tile
-
-    return(tile_skipped)
+        return(tile_skipped)
+    
+    return(None)
 
 
 
@@ -193,15 +194,15 @@ def find_pc_tiles(db, table_index_pc, fields_index_pc,
     if extent_ewkb:
         tiles = get_2Dtiles(db, table_index_pc, fields_index_pc, extent_ewkb)
     else:
-        schema_pc_q = sql.Identifier(table_index_pc[0])
-        table_pc_q = sql.Identifier(table_index_pc[1])
-        field_pc_geom_q = sql.Identifier(fields_index_pc[1])
-        field_pc_unit_q = sql.Identifier(fields_index_pc[2])
+        schema_pc_q = sql.Identifier(table_index_pc['schema'])
+        table_pc_q = sql.Identifier(table_index_pc['table'])
+        field_pc_geom_q = sql.Identifier(fields_index_pc['geometry'])
+        field_pc_unit_q = sql.Identifier(fields_index_pc['unit_name'])
         
-        schema_ftpr_q = sql.Identifier(table_index_footprint[0])
-        table_ftpr_q = sql.Identifier(table_index_footprint[1])
-        field_ftpr_geom_q = sql.Identifier(fields_index_footprint[1])
-        field_ftpr_unit_q = sql.Identifier(fields_index_footprint[2])
+        schema_ftpr_q = sql.Identifier(table_index_footprint['schema'])
+        table_ftpr_q = sql.Identifier(table_index_footprint['table'])
+        field_ftpr_geom_q = sql.Identifier(fields_index_footprint['geometry'])
+        field_ftpr_unit_q = sql.Identifier(fields_index_footprint['unit_name'])
         
         tile_q = sql.Literal(footprint_tile)
         
@@ -245,8 +246,8 @@ def extent_to_ewkb(db, table_index, file):
     Parameters
     ----------
     db : db Class instance
-    table_index : list of str
-        [schema, table name] of the table of tile index.
+    table_index : dict
+        {'schema' : str, 'table' : str} of the table of tile index.
     file : str
         Path to the polygon for clipping the input.
         Must be in the same CRS as the table_index.
@@ -255,8 +256,8 @@ def extent_to_ewkb(db, table_index, file):
     -------
     [Shapely polygon, EWKB str]
     """
-    schema = sql.Identifier(table_index[0])
-    table = sql.Identifier(table_index[1])
+    schema = sql.Identifier(table_index['schema'])
+    table = sql.Identifier(table_index['table'])
     
     query = sql.SQL("""SELECT st_srid(geom) AS srid
                     FROM {schema}.{table}
@@ -284,11 +285,11 @@ def get_2Dtiles(db, table_index, fields_index, ewkb):
     Parameters
     ----------
     db : db Class instance
-    table_index : list of str
-        [schema, table name] of the table of tile index.
-    fields_index : list of str
-        [ID, geometry, unit]
-        ID: Name of the ID field in table_index.
+    table_index : dict
+        {'schema' : str, 'table' : str} of the table of tile index.
+    fields_index : dict
+        {'primary_key' : str, 'geometry' : str, 'unit_name' : str}
+        primary_key: Name of the primary_key field in table_index.
         geometry: Name of the geometry field in table_index.
         unit: Name of the field in table_index that contains the index unit names.
     ewkb : str
@@ -300,10 +301,10 @@ def get_2Dtiles(db, table_index, fields_index, ewkb):
         Tiles that are intersected by the polygon that is provided in 'extent' (YAML).
 
     """
-    schema = sql.Identifier(table_index[0])
-    table = sql.Identifier(table_index[1])
-    field_idx_geom_q = sql.Identifier(fields_index[1])
-    field_idx_unit_q = sql.Identifier(fields_index[2])
+    schema = sql.Identifier(table_index['schema'])
+    table = sql.Identifier(table_index['table'])
+    field_idx_geom_q = sql.Identifier(fields_index['geometry'])
+    field_idx_unit_q = sql.Identifier(fields_index['unit_name'])
     
     ewkb_q = sql.Literal(ewkb)
     # TODO: user input for a.unit
@@ -336,15 +337,15 @@ def get_2Dtile_area(db, table_index):
     ----------
     db : db Class instance
     table_index : list of str
-        [schema name, table name] of the table of tile index.
+        {'schema' : str, 'table' : str} of the table of tile index.
 
     Returns
     -------
     float
 
     """
-    schema = sql.Identifier(table_index[0])
-    table = sql.Identifier(table_index[1])
+    schema = sql.Identifier(table_index['schema'])
+    table = sql.Identifier(table_index['table'])
 
     query = sql.SQL("""
                 SELECT public.st_area(geom) AS area
@@ -522,6 +523,7 @@ def drop_2Dtiles(db, user_schema, views_to_drop):
     try:
         db.conn.commit()
         print("Dropped {} in schema {}.".format(views_to_drop, user_schema))
+        # sql.Identifier("tile_index").as_string(dbs.conn)
     except:
         print("Cannot drop views ", views_to_drop)
         db.conn.rollback()
