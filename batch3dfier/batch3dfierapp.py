@@ -20,10 +20,10 @@ from batch3dfier import db
 
 
 def main():
-    #===============================================================================
+    #===========================================================================
     # User input and Settings
-    #===============================================================================
-    # Parse command-line arguments -------------------------------------------------
+    #===========================================================================
+    # Parse command-line arguments ---------------------------------------------
     parser = argparse.ArgumentParser(description="Batch 3dfy 2D dataset(s).")
     parser.add_argument(
         "config",
@@ -84,16 +84,17 @@ def main():
     # substring in the pointcloud file names.
     CLIP_PREFIX = "_clip3dfy_"
     
-    # Connect to database ----------------------------------------------------------
+    # Connect to database ------------------------------------------------------
     dbase = db.db(DBNAME, HOST, PORT, USER ,PW)
     
-    #===============================================================================
+    #===========================================================================
     # Get tile list if EXTENT_FILE provided
-    #===============================================================================
+    #===========================================================================
     # TODO: assert that CREATE/DROP allowed on TILE_SCHEMA and/or USER_SCHEMA
     if EXTENT_FILE:
-        tiles, poly, ewkb = config.get_2Dtiles(file=EXTENT_FILE, db=dbase,
-                                                tile_index=POLY_TILE_INDEX)
+        poly, ewkb = config.polygon_to_ewkb(dbase, POLY_TILE_INDEX, EXTENT_FILE)
+        
+        tiles = config.get_2Dtiles(dbase, POLY_TILE_INDEX, ewkb)
     
         # Get view names for tiles
         tile_views = config.get_2Dtile_views(dbase, TILE_SCHEMA, tiles)
@@ -113,9 +114,9 @@ def main():
     else:
         tile_views = config.get_2Dtile_views(dbase, TILE_SCHEMA, tiles)
     
-    #===============================================================================
+    #===========================================================================
     # Get tile list if TILE_LIST = 'all'
-    #===============================================================================
+    #===========================================================================
     
     if 'all' in tiles:
         schema = sql.Identifier(POLY_TILE_INDEX[0])
@@ -130,13 +131,13 @@ def main():
     #===========================================================================
     # Get pointcloud tiles
     #===========================================================================
-    if EXTENT_FILE:
-        pc_tiles = config.get_2Dtiles(ewkb=ewkb, db=dbase,
-                                      tile_index=PC_TILE_INDEX)
-    #===============================================================================
+#     if EXTENT_FILE:
+#         pc_tiles = config.get_2Dtiles(ewkb=ewkb, db=dbase,
+#                                       tile_index=PC_TILE_INDEX)
+    #===========================================================================
     # Process multiple threads
     # reference: http://www.tutorialspoint.com/python3/python_multithreading.htm
-    #===============================================================================
+    #===========================================================================
 #     
 #     exitFlag = 0
 #     tiles_skipped = []

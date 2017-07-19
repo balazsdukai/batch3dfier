@@ -104,7 +104,7 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
     # FIXME: add or condition to include tiles_clipped
         # Prepare pointcloud file names for searching them in dataset_dir
         # the output of this block is only passed to
-        tile_out = "output_batch3Dfier"
+        tile_out = "output_batch3dfier"
         if tile_case == "upper":
             tiles = [pc_file_name.format(tile=t.upper()) for t in tiles]
         elif tile_case == "lower":
@@ -203,8 +203,47 @@ def get_2Dtile_area(db, tile_index):
 
     return(area)
 
+def polygon_to_ewkb(db, tile_index, file):
+    """Reads a polygon from a file and returns its EWKB.
+    
+    I didn't find a simple way to safely get SRIDs from the input geometry, 
+    therefore it is obtained from the database and the CRS of the polygon is 
+    assumed to be the same as of the tile indexes.
+    
+    Parameters
+    ----------
+    file : str
+        Path to the polygon for clipping the input.
+        Must be in the same CRS as the tile_index.
+    db : db Class instance
+    tile_index : list of str
+        [schema, table name] of the table of tile index.
+        
+    Returns
+    -------
+    [Shapely polygon, EWKB str]
+    """
+    schema = sql.Identifier(tile_index[0])
+    table = sql.Identifier(tile_index[1])
+    
+    query = sql.SQL("""SELECT st_srid(geom) AS srid
+                    FROM {schema}.{table}
+                    LIMIT 1;""").format(schema=schema, table=table)
+    srid = db.getQuery(query)[0][0]
 
-def get_2Dtiles(db, tile_index, file=None, ewkb=None):
+    # Get clip polygon and set SRID
+    with fiona.open(file, 'r') as src:
+        poly = shape(src[0]['geometry'])
+        # Change a the default mode to add this, if SRID is set
+        geos.WKBWriter.defaults['include_srid'] = True
+        # set SRID for polygon
+        geos.lgeos.GEOSSetSRID(poly._geom, srid)
+        ewkb = poly.wkb_hex
+    
+    return([poly, ewkb])
+
+
+def get_2Dtiles(db, tile_index, ewkb):
     """Returns a list of tiles that overlap the output extent. Returns the output extent as Shapely polygon.
 
     Parameters
@@ -215,8 +254,8 @@ def get_2Dtiles(db, tile_index, file=None, ewkb=None):
     ewkb : str
         EWKB representation of a polygon.
     db : db Class instance
-    tile_index : tuple 
-        As (schema name, table name) of the table of tile index.
+    tile_index : list of str
+        [schema, table name] of the table of tile index.
 
     Returns
     -------
@@ -231,24 +270,6 @@ def get_2Dtiles(db, tile_index, file=None, ewkb=None):
     schema = sql.Identifier(tile_index[0])
     table = sql.Identifier(tile_index[1])
     
-    if file:
-        assert ewkb is None
-        # I didn't find a simple way to safely get SRIDs from the input geometry
-        # Therefore its obtained from the database
-        query = sql.SQL("""SELECT st_srid(geom) AS srid
-                        FROM {schema}.{table}
-                        LIMIT 1;""").format(schema=schema, table=table)
-        srid = db.getQuery(query)[0][0]
-    
-        # Get clip polygon and set SRID
-        with fiona.open(file, 'r') as src:
-            poly = shape(src[0]['geometry'])
-            # Change a the default mode to add this, if SRID is set
-            geos.WKBWriter.defaults['include_srid'] = True
-            # set SRID for polygon
-            geos.lgeos.GEOSSetSRID(poly._geom, srid)
-            ewkb = poly.wkb_hex
-    
     ewkb_q = sql.Literal(ewkb)
     # TODO: user input for a.unit
     query = sql.SQL("""
@@ -261,10 +282,7 @@ def get_2Dtiles(db, tile_index, file=None, ewkb=None):
 
     print("Nr. of tiles in clip extent: " + str(len(tiles)))
 
-    if file:
-        return([tiles, poly, ewkb])
-    else:
-        return(tiles)
+    return(tiles)
 
 
 def get_2Dtile_views(db, tile_schema, tiles):
