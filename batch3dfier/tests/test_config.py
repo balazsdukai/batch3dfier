@@ -1,14 +1,29 @@
+import yaml
+
 from batch3dfier import db
 from batch3dfier import config
 
 dbs = db.db(dbname='batch3dfier_testing', host='localhost', port='5432',
          user= 'batch3dfier_tester', password='batch3d_test')
 
+cfg = {'tile_index': {'elevation': {'fields': {'geometry': 'geom',
+    'primary_key': 'gid',
+    'unit_name': 'unit'},
+   'schema': 'tile_index',
+   'table': 'ahn_index'},
+  'polygons': {'fields': {'geometry': 'geom',
+    'primary_key': 'gid',
+    'unit_name': 'unit'},
+   'schema': 'tile_index',
+   'table': 'bag_index'}}}
+
+
+
 ewkb_test = '010300002040710000010000000A000000DC5806A57984FD4047175D5475B01D41FEC869BE0583FD4062E2FD2847AF1D415FAB6787D87EFD40D24517BD20AE1D418C2EBAE89980FD4025A7F9FA6AAC1D41F17EE434E48AFD40F923A7597EAC1D41B0D5B3430B8AFD405A06A562CFAD1D411526DE8F028DFD40E3FDC8893BAF1D41D47CAD9E298CFD40CCA054383BB01D414A8589F71387FD401626DE2FB7B01D41DC5806A57984FD4047175D5475B01D41'
-bag_index = ['tile_index', 'bag_index']
-bag_fields_index = ['gid', 'geom', 'unit']
-ahn_index = ['tile_index', 'ahn_index']
-ahn_fields_index = ['gid', 'geom', 'unit']
+bag_index = cfg['tile_index']['polygons']
+bag_fields_index = cfg['tile_index']['polygons']['fields']
+ahn_index = cfg['tile_index']['elevation']
+ahn_fields_index = cfg['tile_index']['elevation']['fields']
 
 def test_polygon_to_ewkb():
     file = "/home/bdukai/Development/batch3dfier/example_data/extent_small.geojson"
@@ -55,4 +70,37 @@ def test_find_pc_files():
     
     assert pc_path == pc_path_test
     assert pc_path_none == None
+    
+
+def test_yamlr():
+    schema_tiles = 'bag_tiles'
+    tile = '25gn1_c1'
+    pc_path_test = ['/home/bdukai/Development/batch3dfier/example_data/c_25gn1_a.laz', '/home/bdukai/Development/batch3dfier/example_data/c_25gn1_b.laz']
+    output_format = 'CSV-BUILDINGS-MULTIPLE'
+    
+    y_test = {'input_elevation': [{'datasets': ['/home/bdukai/Development/batch3dfier/example_data/c_25gn1_a.laz',
+                '/home/bdukai/Development/batch3dfier/example_data/c_25gn1_b.laz'],
+               'omit_LAS_classes': [1],
+               'thinning': 0}],
+             'input_polygons': [{'datasets': ['PG:dbname=batch3dfier_testing host=localhost user=batch3dfier_tester password=batch3d_test schemas=bag_tiles tables=25gn1_c1'],
+               'lifting': 'Building',
+               'uniqueid': 'identificatie'}],
+             'lifting_options': {'Building': {'height_floor': 'percentile-10',
+               'height_roof': 'percentile-90',
+               'lod': 1}},
+             'options': {'building_radius_vertex_elevation': 2.0,
+              'radius_vertex_elevation': 1.0,
+              'threshold_jump_edges': 0.5},
+             'output': {'building_floor': True,
+              'format': 'CSV-BUILDINGS-MULTIPLE',
+              'vertical_exaggeration': 0}}
+    
+    y = config.yamlr(dbname=dbs.dbname, host=dbs.host, user=dbs.user,
+                   pw=dbs.password, schema_tiles=schema_tiles,
+                   bag_tile=tile, pc_path=pc_path_test,
+                   output_format=output_format)
+    
+    y_parsed = yaml.load(y)
+    
+    assert y_parsed == y_test
     
