@@ -41,3 +41,18 @@ def test_find_pc_tiles_tile():
                                  fields_index_footprint=bag_fields_index,
                                  footprint_tile=tile)
     assert tiles == ['25gn1_a', '25gn1_b']
+
+
+def test_find_pc_files():
+    pc_tiles = ['25gn1_a', '25gn1_b']
+    pc_dir = "/home/bdukai/Development/batch3dfier/example_data/"
+    pc_file_name = "c_{tile}.laz"
+    tile_case = "lower"
+    pc_path_test = ['/home/bdukai/Development/batch3dfier/example_data/c_25gn1_a.laz', '/home/bdukai/Development/batch3dfier/example_data/c_25gn1_b.laz']
+
+    pc_path = config.find_pc_files(pc_tiles, pc_dir, pc_file_name, tile_case)
+    pc_path_none = config.find_pc_files(pc_tiles, pc_dir, pc_file_name, "upper")
+    
+    assert pc_path == pc_path_test
+    assert pc_path_none == None
+    

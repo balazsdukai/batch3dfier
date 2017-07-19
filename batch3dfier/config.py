@@ -11,7 +11,7 @@ from psycopg2 import sql
 import fiona
 
 
-def yamlr(dbname, host, user, pw, tile_schema,
+def yamlr(dbname, host, user, pw, schema_tiles,
           bag_tile, pc_path, output_format):
     """Parse the YAML config file for 3dfier.
 
@@ -37,7 +37,7 @@ def yamlr(dbname, host, user, pw, tile_schema,
     config = """
         input_polygons:
           - datasets:
-              - "PG:dbname={dbname} host={host} user={user} password={pw} schemas={tile_schema} tables={bag_tile}"
+              - "PG:dbname={dbname} host={host} user={user} password={pw} schemas={schema_tiles} tables={bag_tile}"
             uniqueid: identificatie
             lifting: Building
         
@@ -64,16 +64,20 @@ def yamlr(dbname, host, user, pw, tile_schema,
           building_floor: true
           vertical_exaggeration: 0
         """.format(dbname=dbname, host=host, user=user, pw=pw,
-                   tile_schema=tile_schema,
+                   schema_tiles=schema_tiles,
                    bag_tile=bag_tile, pc_path=pc_dataset,
                    output_format=output_format)
     return(config)
 
 
 
-def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
-               pc_dir, tile_case, yml_dir, dbname, host, user, pw,
-               tile_schema, output_format, output_dir, path_3dfier):
+def call_3dfier(db, tile, schema_tiles, 
+               pc_file_name, pc_tile_case, pc_dir, 
+               table_index_pc, fields_index_pc,
+               table_index_footprint, fields_index_footprint,
+               extent_ewkb, clip_prefix,
+               yml_dir, tile_out, output_format, output_dir,
+               path_3dfier, thread):
     """Call 3dfier with the YAML config created by yamlr().
     
     Note
@@ -82,13 +86,23 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
 
     Parameters
     ----------
+    db : db Class instance
     tile : str
         Name of of the 2D tile.
+    schema_tiles : str 
+        Schema of the footprint tiles.
+    pc_file_name : str
+        Naming convention for the pointcloud files. See 'dataset_name' in batch3dfier_config.yml.
+    pc_tile_case : str
+        How the string matching is done for pc_file_name. See 'tile_case' in batch3dfier_config.yml.
+    pc_dir : str
+        Directory of the pointcloud files. See 'dataset_dir' in batch3dfier_config.yml.
     thread : str
         Name/ID of the active thread.
+    extent_ewkb : str
+        EWKB representation of 'extent' in batch3dfier_config.yml.
     clip_prefix : str 
         Prefix for naming the clipped/united views. This value shouldn't be a substring of the pointcloud file names.
-    union_view : str
 
     Returns
     -------
@@ -97,57 +111,25 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
         was found in 'dataset_dir' (YAML)
 
     """
-    tile_skipped = None
+    pc_tiles = find_pc_tiles(db, table_index_pc, fields_index_pc,
+                             table_index_footprint, fields_index_footprint,
+                             extent_ewkb, footprint_tile=tile)
     
-    pc_path, tile_out, tile_skipped = find_pc_tiles()
-    pc_path = find_pc_files()
+    pc_path = find_pc_files(pc_tiles)
     
-    
-
-
-#     # Prepare AHN file names ---------------------------------------------------
-#     if union_view:
-#     # FIXME: add or condition to include tiles_clipped
-#         # Prepare pointcloud file names for searching them in dataset_dir
-#         # the output of this block is only passed to
-#         tile_out = "output_batch3dfier"
-#         if tile_case == "upper":
-#             tiles = [pc_file_name.format(tile=t.upper()) for t in tiles]
-#         elif tile_case == "lower":
-#             tiles = [pc_file_name.format(tile=t.lower()) for t in tiles]
-#         elif tile_case == "mixed":
-#             tiles = [pc_file_name.format(tile=t) for t in tiles]
-#         else:
-#             raise "Please provide one of the allowed values for tile_case."
-#         # use the tile list in tiles to parse the pointcloud file names
-#         pc_path = [os.path.join(pc_dir, pc_tile) for pc_tile in tiles]
-#     else:
-#         # name of the 3D output matches the view name of the 2D tile
-#         tile_out = tile.replace(clip_prefix, '', 1)
-#         # Prepare pointcloud file names for searching them in dataset_dir
-#         # FIXME: do this properly without hard-coding the tile view prefix
-#         ptile = tile_out.replace('t_', '', 1)
-#         if tile_case == "upper":
-#             pc_tile = pc_file_name.format(tile=ptile.upper())
-#         elif tile_case == "lower":
-#             pc_tile = pc_file_name.format(tile=ptile.lower())
-#         elif tile_case == "mixed":
-#             pc_tile = pc_file_name.format(tile=ptile)
-#         else:
-#             raise "Please provide one of the allowed values for tile_case."
-#         pc_path = [os.path.join(pc_dir, pc_tile)]
+    # prepare output file name
+    if not tile_out:
+        tile_out = tile.replace(clip_prefix, '', 1)
 
     # Call 3dfier --------------------------------------------------------------
-    # Check if the required AHN3 file exists in pc_path
-#     if all([os.path.isfile(p) for p in pc_path]):
     
     if pc_path:
         # Needs a YAML per thread so one doesn't overwrite it while the other
         # uses it
         yml_name = thread + "_config.yml"
         yml_path = os.path.join(yml_dir, yml_name)
-        config = yamlr(dbname=dbname, host=host, user=user,
-                       pw=pw, tile_schema=tile_schema,
+        config = yamlr(dbname=db.dbname, host=db.host, user=db.user,
+                       pw=db.password, schema_tiles=schema_tiles,
                        bag_tile=tile, pc_path=pc_path,
                        output_format=output_format)
         # Write temporary config file
@@ -173,29 +155,42 @@ def call3dfier(tile, thread, clip_prefix, union_view, tiles, pc_file_name,
         except:
             print("\nCannot run 3dfier on tile " + tile)
             tile_skipped = tile
-#     else:
-#         print("\nPointcloud file " + pc_tile +
-#               " not available. Skipping tile.\n")
-#         tile_skipped = tile
+    else:
+        print("\nPointcloud file(s) " + pc_tiles +
+              " not available. Skipping tile.\n")
+        tile_skipped = tile
 
     return(tile_skipped)
 
 
 
-def find_pc_files():
-    """Find pointcloud files in the file system when given a list of tiles
+def find_pc_files(pc_tiles, pc_dir, pc_file_name, pc_tile_case):
+    """Find pointcloud files in the file system when given a list of pointcloud tile names
     """
-    pass
+    # Prepare AHN file names ---------------------------------------------------
+    if pc_tile_case == "upper":
+        tiles = [pc_file_name.format(tile=t.upper()) for t in pc_tiles]
+    elif pc_tile_case == "lower":
+        tiles = [pc_file_name.format(tile=t.lower()) for t in pc_tiles]
+    elif pc_tile_case == "mixed":
+        tiles = [pc_file_name.format(tile=t) for t in pc_tiles]
+    else:
+        raise "Please provide one of the allowed values for pc_tile_case."
+    # use the tile list in tiles to parse the pointcloud file names
+    pc_path = [os.path.join(pc_dir, pc_tile) for pc_tile in tiles]
 
+    if all([os.path.isfile(p) for p in pc_path]):
+        return(pc_path)
+    else:
+        return(None)
 
 
 def find_pc_tiles(db, table_index_pc, fields_index_pc,
                   table_index_footprint=None, fields_index_footprint=None,
-                   extent_ewkb=None, footprint_tile=None):
+                  extent_ewkb=None, footprint_tile=None):
     """Find pointcloud tiles in tile index that intersect the extent or the footprint tile.
     """
     if extent_ewkb:
-        assert footprint_tile is None
         tiles = get_2Dtiles(db, table_index_pc, fields_index_pc, extent_ewkb)
     else:
         schema_pc_q = sql.Identifier(table_index_pc[0])
@@ -362,14 +357,14 @@ def get_2Dtile_area(db, table_index):
 
 
 
-def get_2Dtile_views(db, tile_schema, tiles):
-    """Get View names of the 2D tiles. It tries to find views in tile_schema
+def get_2Dtile_views(db, schema_tiles, tiles):
+    """Get View names of the 2D tiles. It tries to find views in schema_tiles
     that contain the respective tile ID in their name.
 
     Parameters
     ----------
     db : db Class instance
-    tile_schema: str
+    schema_tiles: str
         Name of the schema where the 2D tile views are stored.
     tiles : list
         Tile IDs
@@ -383,26 +378,26 @@ def get_2Dtile_views(db, tile_schema, tiles):
     # Get View names for the tiles
     t = ["%" + tile + "%" for tile in tiles]
     t = sql.Literal(t)
-    tile_schema = sql.Literal(tile_schema)
+    schema_tiles = sql.Literal(schema_tiles)
     query = sql.SQL("""SELECT table_name
                         FROM information_schema.views
                         WHERE table_schema = {}
                         AND table_name LIKE any({});
-                        """).format(tile_schema, t)
+                        """).format(schema_tiles, t)
     resultset = db.getQuery(query)
     tile_views = [tile[0] for tile in resultset]
 
     return(tile_views)
 
 
-def clip_2Dtiles(db, user_schema, tile_schema, tiles, poly, clip_prefix):
+def clip_2Dtiles(db, user_schema, schema_tiles, tiles, poly, clip_prefix):
     """Creates views for the clipped tiles.
 
     Parameters
     ----------
     db : db Class instance
     user_schema: str
-    tile_schema : str
+    schema_tiles : str
     tiles : list
     poly : Shapely polygon
     clip_prefix : str
@@ -414,7 +409,7 @@ def clip_2Dtiles(db, user_schema, tile_schema, tiles, poly, clip_prefix):
 
     """
     user_schema = sql.Identifier(user_schema)
-    tile_schema = sql.Identifier(tile_schema)
+    schema_tiles = sql.Identifier(schema_tiles)
     tiles_clipped = []
 
     for tile in tiles:
@@ -430,11 +425,11 @@ def clip_2Dtiles(db, user_schema, tile_schema, tiles, poly, clip_prefix):
                     a.identificatie,
                     a.geovlak
                 FROM
-                    {tile_schema}.{tile_view} AS a
+                    {schema_tiles}.{tile_view} AS a
                 WHERE
                     st_within(a.geovlak, {wkb}::geometry)"""
                     ).format(user_schema=user_schema,
-                             tile_schema=tile_schema, view=view,
+                             schema_tiles=schema_tiles, view=view,
                              tile_view=tile_view, wkb=wkb)
         db.sendQuery(query)
     try:
@@ -443,7 +438,7 @@ def clip_2Dtiles(db, user_schema, tile_schema, tiles, poly, clip_prefix):
               " views with prefix '{}' are created in schema {}.".format(clip_prefix, user_schema))
     except:
         print("Cannot create view {user_schema}.{clip_prefix}{tile}".format(
-            tile_schema=tile_schema, clip_prefix=clip_prefix))
+            schema_tiles=schema_tiles, clip_prefix=clip_prefix))
         db.conn.rollback()
 
     return(tiles_clipped)

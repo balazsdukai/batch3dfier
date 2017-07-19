@@ -159,7 +159,7 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
     ----------
     db : db Class instance
     schema_tiles : str 
-        Name of the schema where to create the tiles.
+        Name of the schema where to create the footprint tiles.
     table_index : list of str
         [schema, table] of the tile index.
     fields_index : list of str
