@@ -19,12 +19,7 @@ from batch3dfier import config
 from batch3dfier import db
 
 
-def parse_config_yml():
-    #===========================================================================
-    # User input and Settings
-    #===========================================================================
-    cfg = {}
-    
+def parse_console_args():
     # Parse command-line arguments ---------------------------------------------
     parser = argparse.ArgumentParser(description="Batch 3dfy 2D datasets.")
     parser.add_argument(
@@ -36,13 +31,23 @@ def parse_config_yml():
         help="The number of threads to initiate.",
         default=3,
         type=int)
+    
     args = parser.parse_args()
-    
+    args_in = {}
     CFG_FILE = os.path.abspath(args.config)
-    cfg['cfg_dir'] = os.path.dirname(CFG_FILE)
-    cfg['threads'] = args.threads
+    args_in['cfg_dir'] = os.path.dirname(CFG_FILE)
+    args_in['threads'] = args.threads
     
-    stream = open(CFG_FILE, "r")
+    return(args_in)
+
+
+def parse_config_yaml(args_in):
+    #===========================================================================
+    # User input and Settings
+    #===========================================================================
+    cfg = {}
+    
+    stream = open(args_in['cfg_dir'], "r")
     cfg_stream = yaml.load(stream)
     
     cfg['pc_file_name'] = cfg_stream["input_elevation"]["dataset_name"]
@@ -98,7 +103,8 @@ def main():
     union_view = None
     tiles_clipped = None
     
-    cfg = parse_config_yml()
+    args_in = parse_console_args()
+    cfg = parse_config_yaml(args_in)
     dbase = cfg['dbase']
     tiles = cfg['tiles']
     
@@ -143,9 +149,9 @@ def main():
         table_q = sql.Identifier(cfg['polygons']['table'])
         unit_q = sql.Identifier(cfg['polygons']['fields']['unit_name'])
         query = sql.SQL("""
-                    SELECT {unit}
-                    FROM {schema}.{table};
-                    """).format(schema=schema_q, table=table_q, unit=unit_q)
+                        SELECT {unit}
+                        FROM {schema}.{table};
+                        """).format(schema=schema_q, table=table_q, unit=unit_q)
         resultset = dbase.getQuery(query)
         tiles = [tile[0] for tile in resultset]
         
@@ -191,7 +197,7 @@ def main():
                                        fields_index_footprint=cfg['polygons']['fields'],
                                        extent_ewkb=ewkb,
                                        clip_prefix=CLIP_PREFIX,
-                                       yml_dir=cfg['cfg_dir'],
+                                       yml_dir=args_in['cfg_dir'],
                                        tile_out=tile_out,
                                        output_format=cfg['output_format'],
                                        output_dir=cfg['output_dir'],
@@ -205,7 +211,7 @@ def main():
      
     # Prep
      
-    threadList = ["Thread-" + str(t+1) for t in range(cfg['threads'])]
+    threadList = ["Thread-" + str(t+1) for t in range(args_in['threads'])]
     queueLock = threading.Lock()
     workQueue = queue.Queue(0)
     threads = []
@@ -249,7 +255,7 @@ def main():
         config.drop_2Dtiles(dbase, cfg['user_schema'], views_to_drop=tiles_clipped)
           
     # Delete temporary config files
-    yml_cfg = [os.path.join(cfg['cfg_dir'], t + "_config.yml") for t in threadList]
+    yml_cfg = [os.path.join(args_in['cfg_dir'], t + "_config.yml") for t in threadList]
     command = "rm"
     for c in yml_cfg:
         command = command + " " + c
