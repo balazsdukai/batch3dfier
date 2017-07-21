@@ -72,7 +72,9 @@ Where ``batch3dfier_config.yml`` is the YAML configuration file that
 
 ``batch3dfy -h``
 
-+ set the number of concurrent threads (deafult=3):
++ In order to process several tiles efficiently *batch3dfier* starts 3 
+concurrent threads by default, each of them processing a single tile at a time.
+Set the number of threads:
 
 ``batch3dfy -t 4 ./batch3dfier_config.yml``
 
@@ -91,7 +93,14 @@ extrude:
    ::
 
        input_polygons:
-           tile_list: 25gn1, 25ez1
+           tile_list: [25gn1, 25ez1]
+           
+3. process all tiles found in ``tile_index: polygons: fields: unit_name:``
+
+   ::
+
+       input_polygons:
+           tile_list: [all]
 
 Not all of the *3dfier* configuration options are mirrored in the
 *batch3dfier* configuration file. If you notice that something is
@@ -108,20 +117,39 @@ A spatial dataset that covers a whole country can be rather large to
 into rectangular tiles, where a tile is stored as a PostgreSQL *view* of
 the polygons within the partition. Physically, a partition is a polygon
 and a corresponding ID, stored in second dataset which is referred to as
-the *tile index*.
+the *tile index*. It is expected that there are two *tile_indexes*, one for the
+2D polygons and one for the pointcloud f/tiles.
 
-The *view* names composed as *t\_<tile ID>*.
-
-Currently, *batch3dfier* matches the 2D tiles to the pointcloud tiles on
-their ID. This is because the `AHN tile
-index <http://www.ahn.nl/binaries/content/assets/ahn-nl/downloads/ahn_subunits.zip>`__
-was used to partition the 2D dataset.
-
-*batch3dfier* tries to find the matching poincloud file for the 2D tile
+*batch3dfier* matches the 2D tiles to the pointcloud tiles based on spatial intersection.
+Followingly, it searches for the poincloud file corresponding to the pointcloud tile
 in the provided directory (``dataset_dir:``) and it skips the tile if it
-cannot find the file.
+cannot find the file. Relevant arguments in the *config* file are:
 
-The diagram below tries to illustrate how the tile, view, file and
+::
+
+   input_elevation:
+      dataset_dir: /pointcloud_dir
+      dataset_name: c_{tile}_filtered.laz
+      tile_case: lower
+
++ ``dataset_name`` is the naming convention used for the pointcloud files, where
+``{tile}`` is replaced by the name of the pointcloud tile
+
++ ``tile_case`` controls how the string matching is done for {tile}. Allowed options
+are: 
+
+   1. 'upper' (e.g. C_25GN1_filtered.LAZ)
+   
+   2. 'lower' (e.g. C_25gn1_filtered.LAZ)
+   
+   3. 'mixed' (e.g. C_25Gn1_filtered.LAZ)
+
+
+The *view* names composed as *t\_<tile ID>*. But in ``footprints`` they can be
+set to any prefix or none at all. If that's the case, make sure to change the
+``tile_prefix`` argument in the config file.
+
+The diagram below illustrates how the tile, view, file and
 variable names relate to each other. Variable names are always the last,
 e.g. ``tile_views`` or ``pc_tile``.
 
@@ -156,15 +184,13 @@ e.g. ``tile_views`` or ``pc_tile``.
       |                |
       +----------------+
 
-In order to process several tiles efficiently *batch3dfier* starts 3
-concurrent threads, each of them processing a single tile at a time.
 
 Requirements
 ------------
 
 Python 3
 
-The package has been tested only on Linux with the following packages:
+The package has been tested only with Python3.5 on Linux with the following packages:
 
 -  PyYAML (3.11)
 -  psycopg2 (2.7)

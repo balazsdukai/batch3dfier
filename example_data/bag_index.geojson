@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
+"features": [
+{ "type": "Feature", "properties": { "gid": 1, "unit": "25gn1_c1" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 120937.5, 486328.125 ], [ 120937.5, 485937.5 ], [ 120625.0, 485937.5 ], [ 120625.0, 486328.125 ], [ 120937.5, 486328.125 ] ] ] } },
+{ "type": "Feature", "properties": { "gid": 2, "unit": "25gn1_c2" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 120937.5, 485937.5 ], [ 120937.5, 486328.125 ], [ 121250.0, 486328.125 ], [ 121250.0, 485937.5 ], [ 120937.5, 485937.5 ] ] ] } },
+{ "type": "Feature", "properties": { "gid": 3, "unit": "25gn1_c3" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 120937.5, 486328.125 ], [ 120937.5, 486718.75 ], [ 121250.0, 486718.75 ], [ 121250.0, 486328.125 ], [ 120937.5, 486328.125 ] ] ] } },
+{ "type": "Feature", "properties": { "gid": 4, "unit": "25gn1_c4" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 120937.5, 486718.75 ], [ 120937.5, 486328.125 ], [ 120625.0, 486328.125 ], [ 120625.0, 486718.75 ], [ 120937.5, 486718.75 ] ] ] } }
+]
+}

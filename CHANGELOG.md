@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+- the `tile_index` argument block is updated to handle both footprint and pointcloud tile indexes
+
+### Added
+- `tile_prefix` to indicate the prefix on footprint tile views
+- Find intersecting pointcloud tiles for 2D footprint. Local directory is still searched for corresponding pointcloud files.
+- `uniqueid` config argument
+
+### Removed
+- ID/name match between 2D and pointcloud tiles, because the same tile index is used for both datasets.
+- hard-coded BAG parameters
+
 ## [0.4.0] - 2017-07-18
 Completely revamped `bagtiler` module
 ### Changed

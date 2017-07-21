@@ -8,6 +8,11 @@ import psycopg2
 class db(object):
     """A database connection class """
     def __init__(self, dbname, host, port, user, password):
+        self.dbname = dbname
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = password
         try:
             self.conn = psycopg2.connect("dbname=%s host=%s port=%s \
                                           user=%s password=%s" \
