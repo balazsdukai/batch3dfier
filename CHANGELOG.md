@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+
 ### Changed
 - the `tile_index` argument block is updated to handle both footprint and pointcloud tile indexes
 
