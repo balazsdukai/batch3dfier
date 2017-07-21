@@ -23,12 +23,11 @@ def parse_console_args():
     # Parse command-line arguments ---------------------------------------------
     parser = argparse.ArgumentParser(description="Batch 3dfy 2D datasets.")
     parser.add_argument(
-        "config",
-        metavar="config_file",
-        help="The YAML config file for batch3dfier.")
+        "path",
+        help="The YAML config file for batch3dfier. See batch3dfier_config.yml for an example.")
     parser.add_argument(
         "-t", "--threads",
-        help="The number of threads to initiate.",
+        help="The number of threads to run.",
         default=3,
         type=int)
     
