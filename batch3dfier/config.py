@@ -11,73 +11,11 @@ from psycopg2 import sql
 import fiona
 
 
-def yamlr(dbname, host, user, pw, schema_tiles,
-          bag_tile, pc_path, output_format):
-    """Parse the YAML config file for 3dfier.
-
-    Parameters
-    ----------
-    See batch3dfier_config.yml.
-        
-
-    Returns
-    -------
-    string
-        the YAML config file for 3dfier
-
-    """
-
-    pc_dataset = ""
-    if len(pc_path) > 1:
-        for p in pc_path:
-            pc_dataset += "- " + p + "\n" + "      "
-    else:
-        pc_dataset += "- " + pc_path[0]
-
-    # !!! Do not correct the indentation of the config template, otherwise it 
-    # results in 'YAML::TypedBadConversion<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >'
-    # because every line is indented as here
-    config = """
-input_polygons:
-  - datasets:
-      - "PG:dbname={dbname} host={host} user={user} password={pw} schemas={schema_tiles} tables={bag_tile}"
-    uniqueid: identificatie
-    lifting: Building
-
-lifting_options:
-  Building:
-    height_roof: percentile-90
-    height_floor: percentile-10
-    lod: 1
-
-input_elevation:
-  - datasets:
-      {pc_path}
-    omit_LAS_classes:
-      - 1
-    thinning: 0
-
-options:
-  building_radius_vertex_elevation: 2.0
-  radius_vertex_elevation: 1.0
-  threshold_jump_edges: 0.5
-
-output:
-  format: {output_format}
-  building_floor: true
-  vertical_exaggeration: 0
-        """.format(dbname=dbname, host=host, user=user, pw=pw,
-                   schema_tiles=schema_tiles,
-                   bag_tile=bag_tile, pc_path=pc_dataset,
-                   output_format=output_format)
-    return(config)
-
-
 
 def call_3dfier(db, tile, schema_tiles, 
                pc_file_name, pc_tile_case, pc_dir, 
                table_index_pc, fields_index_pc,
-               table_index_footprint, fields_index_footprint,
+               table_index_footprint, fields_index_footprint, uniqueid,
                extent_ewkb, clip_prefix, prefix_tile_footprint,
                yml_dir, tile_out, output_format, output_dir,
                path_3dfier, thread):
@@ -138,7 +76,7 @@ def call_3dfier(db, tile, schema_tiles,
         config = yamlr(dbname=db.dbname, host=db.host, user=db.user,
                        pw=db.password, schema_tiles=schema_tiles,
                        bag_tile=tile, pc_path=pc_path,
-                       output_format=output_format)
+                       output_format=output_format, uniqueid=uniqueid)
         # Write temporary config file
         try:
             with open(yml_path, "w") as text_file:
@@ -168,6 +106,74 @@ def call_3dfier(db, tile, schema_tiles,
         return(tile_skipped)
     
     return(None)
+
+
+
+def yamlr(dbname, host, user, pw, schema_tiles,
+          bag_tile, pc_path, output_format, uniqueid):
+    """Parse the YAML config file for 3dfier.
+
+    Parameters
+    ----------
+    See batch3dfier_config.yml.
+        
+
+    Returns
+    -------
+    string
+        the YAML config file for 3dfier
+
+    """
+
+    pc_dataset = ""
+    if len(pc_path) > 1:
+        for p in pc_path:
+            pc_dataset += "- " + p + "\n" + "      "
+    else:
+        pc_dataset += "- " + pc_path[0]
+
+    # !!! Do not correct the indentation of the config template, otherwise it 
+    # results in 'YAML::TypedBadConversion<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >'
+    # because every line is indented as here
+    config = """
+input_polygons:
+  - datasets:
+      - "PG:dbname={dbname} host={host} user={user} password={pw} schemas={schema_tiles} tables={bag_tile}"
+    uniqueid: {uniqueid}
+    lifting: Building
+
+lifting_options:
+  Building:
+    height_roof: percentile-90
+    height_floor: percentile-10
+    lod: 1
+
+input_elevation:
+  - datasets:
+      {pc_path}
+    omit_LAS_classes:
+      - 1
+    thinning: 0
+
+options:
+  building_radius_vertex_elevation: 2.0
+  radius_vertex_elevation: 1.0
+  threshold_jump_edges: 0.5
+
+output:
+  format: {output_format}
+  building_floor: true
+  vertical_exaggeration: 0
+        """.format(dbname=dbname,
+                   host=host,
+                   user=user,
+                   pw=pw,
+                   schema_tiles=schema_tiles,
+                   bag_tile=bag_tile,
+                   uniqueid=uniqueid,
+                   pc_path=pc_dataset,
+                   output_format=output_format)
+    return(config)
 
 
 
@@ -409,7 +415,7 @@ def get_2Dtile_views(db, schema_tiles, tiles):
 
 
 def clip_2Dtiles(db, user_schema, schema_tiles, tiles, poly, clip_prefix,
-                 view_fields):
+                 fields_view):
     """Creates views for the clipped tiles.
 
     Parameters
@@ -431,8 +437,8 @@ def clip_2Dtiles(db, user_schema, schema_tiles, tiles, poly, clip_prefix,
     schema_tiles = sql.Identifier(schema_tiles)
     tiles_clipped = []
     
-    fields_all = view_fields['all']
-    field_geom_q = sql.Identifier(view_fields['geometry'])
+    fields_all = fields_view['all']
+    field_geom_q = sql.Identifier(fields_view['geometry'])
 
     for tile in tiles:
         t = clip_prefix + tile
@@ -469,7 +475,7 @@ def clip_2Dtiles(db, user_schema, schema_tiles, tiles, poly, clip_prefix,
     return(tiles_clipped)
 
 
-def union_2Dtiles(db, user_schema, tiles_clipped, clip_prefix):
+def union_2Dtiles(db, user_schema, tiles_clipped, clip_prefix, fields_view):
     """Union the clipped tiles into a single view.
 
     Parameters
@@ -493,18 +499,28 @@ def union_2Dtiles(db, user_schema, tiles_clipped, clip_prefix):
     union_view = sql.Identifier(u)
     sql_query = sql.SQL("CREATE OR REPLACE VIEW {user_schema}.{view} AS ").format(
         user_schema=user_schema, view=union_view)
+    
+    fields_all = fields_view['all']
 
     for tile in tiles_clipped[:-1]:
         view = sql.Identifier(tile)
-        sql_subquery = sql.SQL("""SELECT gid, identificatie, geovlak
+        fields_q = parse_sql_select_fields(tile, fields_all)
+        sql_subquery = sql.SQL("""SELECT {fields}
                                FROM {user_schema}.{view}
-                               UNION ALL """).format(user_schema=user_schema, view=view)
+                               UNION ALL """).format(fields=fields_q,
+                                                     user_schema=user_schema,
+                                                     view=view)
 
         sql_query = sql_query + sql_subquery
     # The last statement
-    view = sql.Identifier(tiles_clipped[-1])
-    sql_subquery = sql.SQL("""SELECT gid, identificatie, geovlak
-                           FROM {user_schema}.{view};""").format(user_schema=user_schema, view=view)
+    tile = tiles_clipped[-1]
+    view = sql.Identifier(tile)
+    fields_q = parse_sql_select_fields(tile, fields_all)
+    sql_subquery = sql.SQL("""SELECT {fields}
+                           FROM {user_schema}.{view};
+                           """).format(fields=fields_q,
+                                       user_schema=user_schema,
+                                       view=view)
     sql_query = sql_query + sql_subquery
 
     db.sendQuery(sql_query)

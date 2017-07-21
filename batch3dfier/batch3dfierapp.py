@@ -91,6 +91,8 @@ def parse_config_yaml(args_in):
                   user=cfg_stream["input_polygons"]["database"]["user"],
                   password=cfg_stream["input_polygons"]["database"]["pw"])
     
+    cfg['uniqueid'] = cfg_stream["input_polygons"]['uniqueid']
+    
     cfg['prefix_tile_footprint'] = cfg_stream["input_polygons"]["database"]["tile_prefix"]
     
     return(cfg)
@@ -108,6 +110,7 @@ def main():
     args_in = parse_console_args()
     cfg = parse_config_yaml(args_in)
     dbase = cfg['dbase']
+    tiles = cfg['tiles']
     
     #===========================================================================
     # Get tile list if 'extent' provided
@@ -122,29 +125,32 @@ def main():
     
         # Get view names for tiles
         tile_views = config.get_2Dtile_views(dbase, cfg['tile_schema'], tiles)
+        
+        view_fields = config.get_view_fields(dbase, cfg['tile_schema'], tile_views)
     
         # clip 2D tiles to extent
         tiles_clipped = config.clip_2Dtiles(dbase, cfg['user_schema'],
                                             cfg['tile_schema'],
                                             tile_views, poly,
-                                            CLIP_PREFIX)
+                                            CLIP_PREFIX,
+                                            view_fields)
     
         # if the area of the extent is less than that of a tile, union the tiles is the
         # extent spans over many
         tile_area = config.get_2Dtile_area(dbase, cfg['polygons'])
         if len(tiles_clipped) > 1 and poly.area < tile_area:
-            union_view = config.union_2Dtiles(
-                dbase, cfg['user_schema'], tiles_clipped, CLIP_PREFIX)
+            union_view = config.union_2Dtiles(dbase, cfg['user_schema'],
+                                              tiles_clipped, CLIP_PREFIX,
+                                              view_fields)
             tile_out = "output_batch3dfier"
         else:
             union_view = []
             
-    elif cfg['tiles']:
+    elif tiles:
         #=======================================================================
         # Get tile list if 'tile_list' = 'all'
         #=======================================================================
-        print(cfg['tiles'])
-        if 'all' in cfg['tiles']:
+        if 'all' in tiles:
             schema_q = sql.Identifier(cfg['polygons']['schema'])
             table_q = sql.Identifier(cfg['polygons']['table'])
             unit_q = sql.Identifier(cfg['polygons']['fields']['unit_name'])
@@ -159,7 +165,7 @@ def main():
                                                  tiles)
         else:
             tile_views = config.get_2Dtile_views(dbase, cfg['tile_schema'],
-                                                 cfg['tiles'])
+                                                 tiles)
     
     else:
         TypeError("Please provide either 'extent' or 'tile_list' in config.")
@@ -203,6 +209,7 @@ def main():
                                        fields_index_pc=cfg['elevation']['fields'],
                                        table_index_footprint=cfg['polygons'],
                                        fields_index_footprint=cfg['polygons']['fields'],
+                                       uniqueid=cfg['uniqueid'],
                                        extent_ewkb=ewkb,
                                        clip_prefix=CLIP_PREFIX,
                                        prefix_tile_footprint=cfg['prefix_tile_footprint'],
@@ -277,7 +284,7 @@ def main():
     #=========================================================================
     # Reporting
     #=========================================================================
-    tiles = set(cfg['tiles'])
+    tiles = set(tiles)
     tiles_skipped = set(tiles_skipped)
     print("\nTotal number of tiles processed: " +
           str(len(tiles.difference(tiles_skipped))))
