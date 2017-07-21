@@ -20,7 +20,7 @@ def update_tile_index(db, table_index, fields_index):
     table_index : list of str
         (schema, table) that contains the tile index polygons.
     fields_index: list of str
-        [ID, geometry, unit] field names of the ID, geometry, name fields in table_index.
+        [ID, geometry, unit] field names of the ID, geometry, tile unit name fields in table_index.
 
     Returns
     -------
@@ -159,7 +159,7 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
     ----------
     db : db Class instance
     schema_tiles : str 
-        Name of the schema where to create the tiles.
+        Name of the schema where to create the footprint tiles.
     table_index : list of str
         [schema, table] of the tile index.
     fields_index : list of str
@@ -237,54 +237,53 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
         prefix_tiles = ""
     assert isinstance(prefix_tiles, str)
     # Create a BAG tile with equivalent area of an AHN tile
-    try:
-        for tile in tiles:
-            # !!! the 't_' prefix is hard-coded in config.call3dfier() !!!
-            n = prefix_tiles + str(tile)
-            view = sql.Identifier(n)
-            
-            tile = sql.Literal(tile)
-            query = sql.SQL("""CREATE OR REPLACE VIEW {schema_tiles}.{view} AS
-                            SELECT
-                                {fields_poly}
-                            FROM
-                                {schema_poly}.{table_poly}
-                            INNER JOIN {schema_ctr}.{table_ctr} ON
-                                {table_poly}.{field_poly_id} = {table_ctr}.{field_ctr_id},
-                                {schema_idx}.{table_idx}
-                            WHERE
-                                {table_idx}.{field_idx} = {tile}
-                                AND(
-                                    st_containsproperly(
-                                        {table_idx}.{field_idx_geom},
-                                        {table_ctr}.{field_ctr_geom}
-                                    )
-                                    OR st_contains(
-                                        {table_idx}.geom_border,
-                                        {table_ctr}.{field_ctr_geom}
-                                    )
-                            );""").format(schema_tiles=schema_tiles_q,
-                                          view=view,
-                                          fields_poly=sql_fields_footprint,
-                                          schema_poly=schema_poly_q,
-                                          table_poly=table_poly_q,
-                                          schema_ctr=schema_ctr_q,
-                                          table_ctr=table_ctr_q,
-                                          field_poly_id=field_poly_id_q,
-                                          field_ctr_id=field_ctr_id_q,
-                                          schema_idx=schema_idx_q,
-                                          table_idx=table_idx_q,
-                                          field_idx=field_idx_unit_q,
-                                          tile=tile,
-                                          field_idx_geom=field_idx_geom_q,
-                                          field_ctr_geom=field_ctr_geom_q
-                                          )
-            db.sendQuery(query)
-    
-        return("%s Views created in schema '%s'." % (len(tiles), schema_tiles))
+    for tile in tiles:
+        # !!! the 't_' prefix is hard-coded in config.call3dfier() !!!
+        n = prefix_tiles + str(tile)
+        view = sql.Identifier(n)
         
-    except:
-        return("Cannot create Views in schema '%s'" % schema_tiles)
+        tile = sql.Literal(tile)
+        query = sql.SQL("""CREATE OR REPLACE VIEW {schema_tiles}.{view} AS
+                        SELECT
+                            {fields_poly}
+                        FROM
+                            {schema_poly}.{table_poly}
+                        INNER JOIN {schema_ctr}.{table_ctr} ON
+                            {table_poly}.{field_poly_id} = {table_ctr}.{field_ctr_id},
+                            {schema_idx}.{table_idx}
+                        WHERE
+                            {table_idx}.{field_idx} = {tile}
+                            AND(
+                                st_containsproperly(
+                                    {table_idx}.{field_idx_geom},
+                                    {table_ctr}.{field_ctr_geom}
+                                )
+                                OR st_contains(
+                                    {table_idx}.geom_border,
+                                    {table_ctr}.{field_ctr_geom}
+                                )
+                        );""").format(schema_tiles=schema_tiles_q,
+                                      view=view,
+                                      fields_poly=sql_fields_footprint,
+                                      schema_poly=schema_poly_q,
+                                      table_poly=table_poly_q,
+                                      schema_ctr=schema_ctr_q,
+                                      table_ctr=table_ctr_q,
+                                      field_poly_id=field_poly_id_q,
+                                      field_ctr_id=field_ctr_id_q,
+                                      schema_idx=schema_idx_q,
+                                      table_idx=table_idx_q,
+                                      field_idx=field_idx_unit_q,
+                                      tile=tile,
+                                      field_idx_geom=field_idx_geom_q,
+                                      field_ctr_geom=field_ctr_geom_q
+                                      )
+        db.sendQuery(query)
+    
+    return("%s Views created in schema '%s'." % (len(tiles), schema_tiles))
+        
+#     except:
+#         return("Cannot create Views in schema '%s'" % schema_tiles)
 
 
 
