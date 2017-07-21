@@ -103,4 +103,22 @@ def test_yamlr():
     y_parsed = yaml.load(y)
     
     assert y_parsed == y_test
+
+
+def test_get_view_fields():
+    user_schema = 'bag_tiles'
+    tile_views = ['t_25gn1_c1', 't_25gn1_c2', 't_25gn1_c3', 't_25gn1_c4']
+    fields = config.get_view_fields(dbs, user_schema, tile_views)
+    fields_test = {'all': ['gid', 'geom', 'identification'], 'geometry': 'geom'}
+    
+    assert fields == fields_test
+
+def test_parse_sql_select_fields():
+    table = 't_25gn1_c1'
+    fields = ['gid', 'geom', 'identification']
+    sql = config.parse_sql_select_fields(table, fields)
+    sql_test = '"t_25gn1_c1"."gid", "t_25gn1_c1"."geom", "t_25gn1_c1"."identification"'
+    sql_str = sql.as_string(dbs.conn)
+
+    assert sql_str == sql_test
     

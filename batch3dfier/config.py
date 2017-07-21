@@ -408,7 +408,8 @@ def get_2Dtile_views(db, schema_tiles, tiles):
     return(tile_views)
 
 
-def clip_2Dtiles(db, user_schema, schema_tiles, tiles, poly, clip_prefix):
+def clip_2Dtiles(db, user_schema, schema_tiles, tiles, poly, clip_prefix,
+                 view_fields):
     """Creates views for the clipped tiles.
 
     Parameters
@@ -429,26 +430,32 @@ def clip_2Dtiles(db, user_schema, schema_tiles, tiles, poly, clip_prefix):
     user_schema = sql.Identifier(user_schema)
     schema_tiles = sql.Identifier(schema_tiles)
     tiles_clipped = []
+    
+    fields_all = view_fields['all']
+    field_geom_q = sql.Identifier(view_fields['geometry'])
 
     for tile in tiles:
         t = clip_prefix + tile
         tiles_clipped.append(t)
         view = sql.Identifier(t)
         tile_view = sql.Identifier(tile)
+        fields_q = parse_sql_select_fields(tile, fields_all)
         wkb = sql.Literal(poly.wkb_hex)
         query = sql.SQL("""
             CREATE OR REPLACE VIEW {user_schema}.{view} AS
                 SELECT
-                    a.gid,
-                    a.identificatie,
-                    a.geovlak
+                    {fields}
                 FROM
-                    {schema_tiles}.{tile_view} AS a
+                    {schema_tiles}.{tile_view}
                 WHERE
-                    st_within(a.geovlak, {wkb}::geometry)"""
+                    st_within({tile_view}.{geom}, {wkb}::geometry)"""
                     ).format(user_schema=user_schema,
-                             schema_tiles=schema_tiles, view=view,
-                             tile_view=tile_view, wkb=wkb)
+                             schema_tiles=schema_tiles,
+                             view=view,
+                             fields=fields_q,
+                             tile_view=tile_view,
+                             geom=field_geom_q,
+                             wkb=wkb)
         db.sendQuery(query)
     try:
         db.conn.commit()
@@ -511,6 +518,77 @@ def union_2Dtiles(db, user_schema, tiles_clipped, clip_prefix):
         return(False)
 
     return(u)
+
+
+def get_view_fields(db, user_schema, tile_views):
+    """Get the fields in a 2D tile view
+    
+    Parameters
+    ----------
+    tile_views : list of str
+    
+    Returns
+    -------
+    {'all' : list, 'geometry' : str}
+    
+    """
+    if len(tile_views) > 0:
+        schema_q = sql.Literal(user_schema)
+        view_q = sql.Literal(tile_views[0])
+        
+        resultset = db.getQuery(sql.SQL("""
+                            SELECT
+                                column_name
+                            FROM
+                                information_schema.columns
+                            WHERE
+                                table_schema = {schema}
+                                AND table_name = {view};
+                            """).format(schema=schema_q,
+                                        view=view_q))
+        f = [field[0] for field in resultset]
+        
+        geom_res = db.getQuery(sql.SQL("""
+                            SELECT
+                                f_geometry_column
+                            FROM
+                                public.geometry_columns
+                            WHERE
+                                f_table_schema = {schema}
+                                AND f_table_name = {view};
+                            """).format(schema=schema_q,
+                                        view=view_q))
+        f_geom = geom_res[0][0]
+        
+        fields = {}
+        fields['all'] = f
+        fields['geometry'] = f_geom
+        
+        return(fields)
+    
+    else:
+        return(None)
+    
+
+
+def parse_sql_select_fields(table, fields):
+    """Parses a list of field names into "table"."field" to insert into a SELECT ... FROM table
+    
+    Parameters
+    ----------
+    fields : list of str
+    
+    Returns
+    -------
+    psycopg2.sql.Composable
+    
+    """
+    s = []
+    for f in fields:
+        s.append(sql.SQL('.').join([sql.Identifier(table), sql.Identifier(f)]))
+    sql_fields = sql.SQL(', ').join(s)
+    
+    return(sql_fields)
 
 
 def drop_2Dtiles(db, user_schema, views_to_drop):
