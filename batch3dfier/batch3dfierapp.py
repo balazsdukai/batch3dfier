@@ -71,9 +71,9 @@ def parse_config_yaml(args_in):
         cfg['extent_file'] = os.path.abspath(cfg_stream["input_polygons"]["extent"])
         cfg['tiles'] = None
     except (NameError, AttributeError, TypeError):
-        tiles = cfg_stream["input_polygons"]["tile_list"]  # a list of 2D tiles as input
-#         cfg['tiles'] = [t.strip() for t in tiles.split(sep=",")]
-        cfg['tiles'] = [str(t) for t in tiles]
+        tile_list = cfg_stream["input_polygons"]["tile_list"]
+        assert isinstance(tile_list, list), "Please provide input for tile_list as a list: [...]"
+        cfg['tiles'] = tile_list
         cfg['extent_file'] = None
     
     # 'user_schema' is used for the '_clip3dfy_' and '_union' views, thus
@@ -90,6 +90,8 @@ def parse_config_yaml(args_in):
                   port=cfg_stream["input_polygons"]["database"]["port"],
                   user=cfg_stream["input_polygons"]["database"]["user"],
                   password=cfg_stream["input_polygons"]["database"]["pw"])
+    
+    cfg['prefix_tile_footprint'] = cfg_stream["input_polygons"]["database"]["tile_prefix"]
     
     return(cfg)
 
@@ -141,7 +143,7 @@ def main():
         #=======================================================================
         # Get tile list if 'tile_list' = 'all'
         #=======================================================================
-        
+        print(cfg['tiles'])
         if 'all' in cfg['tiles']:
             schema_q = sql.Identifier(cfg['polygons']['schema'])
             table_q = sql.Identifier(cfg['polygons']['table'])
@@ -203,6 +205,7 @@ def main():
                                        fields_index_footprint=cfg['polygons']['fields'],
                                        extent_ewkb=ewkb,
                                        clip_prefix=CLIP_PREFIX,
+                                       prefix_tile_footprint=cfg['prefix_tile_footprint'],
                                        yml_dir=args_in['cfg_dir'],
                                        tile_out=tile_out,
                                        output_format=cfg['output_format'],

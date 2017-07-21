@@ -8,6 +8,7 @@ input_polygons:
         pw: batch3d_test
         tile_schema: bag_tiles  # Name of the schema that contains the 2D tiles
         user_schema: # If user has no CREATE and DROP privilege on tile_schema, provide a schema where it has.. Mainly relevant when 'extent' is provided.
+        tile_prefix: t_
     extent: /home/bdukai/Development/batch3dfier/example_data/extent_small.geojson #/home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
     tile_list:  # [25gn1_c1, 25gn1_c2, 25gn1_c3, 25gn1_c4] # list of tile IDs as they are in tile_schema | 'all' to use all IDs in tile_index
 

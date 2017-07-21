@@ -1,9 +1,8 @@
 from batch3dfier.batch3dfierapp import parse_config_yaml
 
-args_in = {}
-args_in['cfg_file'] = "/home/bdukai/Development/batch3dfier/test_batch3dfier_config.yml"
-
-def test_parse_config_yaml():
+def test_parse_config_yaml_1():
+    args_in = {}
+    args_in['cfg_file'] = "/home/bdukai/Development/batch3dfier/test_batch3dfier_config.yml"
     cfg = parse_config_yaml(args_in)
     cfg.pop('dbase')
     assert cfg == {'elevation': {'fields': {'geometry': 'geom',
@@ -23,6 +22,11 @@ def test_parse_config_yaml():
                    'unit_name': 'unit'},
                   'schema': 'tile_index',
                   'table': 'bag_index'},
+                 'prefix_tile_footprint': 't_',
                  'tile_schema': 'bag_tiles',
                  'tiles': None,
                  'user_schema': 'bag_tiles'}
+    
+
+
+

@@ -54,7 +54,7 @@ def test_find_pc_tiles_tile():
                                  fields_index_pc=ahn_fields_index,
                                  table_index_footprint=bag_index,
                                  fields_index_footprint=bag_fields_index,
-                                 footprint_tile=tile)
+                                 tile_footprint=tile)
     assert tiles == ['25gn1_a', '25gn1_b']
 
 
