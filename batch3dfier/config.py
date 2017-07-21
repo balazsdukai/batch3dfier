@@ -78,7 +78,7 @@ def call_3dfier(db, tile, schema_tiles,
                pc_file_name, pc_tile_case, pc_dir, 
                table_index_pc, fields_index_pc,
                table_index_footprint, fields_index_footprint,
-               extent_ewkb, clip_prefix,
+               extent_ewkb, clip_prefix, prefix_tile_footprint,
                yml_dir, tile_out, output_format, output_dir,
                path_3dfier, thread):
     """Call 3dfier with the YAML config created by yamlr().
@@ -106,7 +106,10 @@ def call_3dfier(db, tile, schema_tiles,
         EWKB representation of 'extent' in batch3dfier_config.yml.
     clip_prefix : str 
         Prefix for naming the clipped/united views. This value shouldn't be a substring of the pointcloud file names.
-
+    prefix_tile_footprint : str or None
+        Prefix prepended to the footprint tile view names. If None, the views are named as 
+        the values in fields_index_fooptrint['unit_name'].
+        
     Returns
     -------
     list
@@ -116,7 +119,8 @@ def call_3dfier(db, tile, schema_tiles,
     """
     pc_tiles = find_pc_tiles(db, table_index_pc, fields_index_pc,
                              table_index_footprint, fields_index_footprint,
-                             extent_ewkb, footprint_tile=tile)
+                             extent_ewkb, tile_footprint=tile,
+                             prefix_tile_footprint=prefix_tile_footprint)
     
     pc_path = find_pc_files(pc_tiles, pc_dir, pc_file_name, pc_tile_case)
     
@@ -190,8 +194,16 @@ def find_pc_files(pc_tiles, pc_dir, pc_file_name, pc_tile_case):
 
 def find_pc_tiles(db, table_index_pc, fields_index_pc,
                   table_index_footprint=None, fields_index_footprint=None,
-                  extent_ewkb=None, footprint_tile=None):
+                  extent_ewkb=None, tile_footprint=None,
+                  prefix_tile_footprint=None):
     """Find pointcloud tiles in tile index that intersect the extent or the footprint tile.
+    
+    Parameters
+    ----------
+    prefix_tile_footprint : str or None
+        Prefix prepended to the footprint tile view names. If None, the views are named as 
+        the values in fields_index_fooptrint['unit_name'].
+        
     """
     if extent_ewkb:
         tiles = get_2Dtiles(db, table_index_pc, fields_index_pc, extent_ewkb)
@@ -206,7 +218,10 @@ def find_pc_tiles(db, table_index_pc, fields_index_pc,
         field_ftpr_geom_q = sql.Identifier(fields_index_footprint['geometry'])
         field_ftpr_unit_q = sql.Identifier(fields_index_footprint['unit_name'])
         
-        tile_q = sql.Literal(footprint_tile)
+        if prefix_tile_footprint:
+            tile_footprint = tile_footprint.replace(prefix_tile_footprint, '', 1)
+        
+        tile_q = sql.Literal(tile_footprint)
         
         query = sql.SQL("""
                             SELECT
@@ -379,7 +394,7 @@ def get_2Dtile_views(db, schema_tiles, tiles):
 
     """
     # Get View names for the tiles
-    t = ["%" + tile + "%" for tile in tiles]
+    t = ["%" + str(tile) + "%" for tile in tiles]
     t = sql.Literal(t)
     schema_tiles = sql.Literal(schema_tiles)
     query = sql.SQL("""SELECT table_name
