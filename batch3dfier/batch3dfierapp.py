@@ -106,10 +106,9 @@ def main():
     args_in = parse_console_args()
     cfg = parse_config_yaml(args_in)
     dbase = cfg['dbase']
-    tiles = cfg['tiles']
     
     #===========================================================================
-    # Get tile list if EXTENT_FILE provided
+    # Get tile list if 'extent' provided
     #===========================================================================
     # TODO: assert that CREATE/DROP allowed on TILE_SCHEMA and/or USER_SCHEMA
     if cfg['extent_file']:
@@ -137,24 +136,31 @@ def main():
             tile_out = "output_batch3dfier"
         else:
             union_view = []
-    else:
-        tile_views = config.get_2Dtile_views(dbase, cfg['tile_schema'], tiles)
-    
-    #===========================================================================
-    # Get tile list if TILE_LIST = 'all'
-    #===========================================================================
-    
-    if 'all' in tiles:
-        schema_q = sql.Identifier(cfg['polygons']['schema'])
-        table_q = sql.Identifier(cfg['polygons']['table'])
-        unit_q = sql.Identifier(cfg['polygons']['fields']['unit_name'])
-        query = sql.SQL("""
-                        SELECT {unit}
-                        FROM {schema}.{table};
-                        """).format(schema=schema_q, table=table_q, unit=unit_q)
-        resultset = dbase.getQuery(query)
-        tiles = [tile[0] for tile in resultset]
+            
+    elif cfg['tiles']:
+        #=======================================================================
+        # Get tile list if 'tile_list' = 'all'
+        #=======================================================================
         
+        if 'all' in cfg['tiles']:
+            schema_q = sql.Identifier(cfg['polygons']['schema'])
+            table_q = sql.Identifier(cfg['polygons']['table'])
+            unit_q = sql.Identifier(cfg['polygons']['fields']['unit_name'])
+            query = sql.SQL("""
+                            SELECT {unit}
+                            FROM {schema}.{table};
+                            """).format(schema=schema_q, table=table_q,
+                                        unit=unit_q)
+            resultset = dbase.getQuery(query)
+            tiles = [tile[0] for tile in resultset]
+            tile_views = config.get_2Dtile_views(dbase, cfg['tile_schema'],
+                                                 tiles)
+        else:
+            tile_views = config.get_2Dtile_views(dbase, cfg['tile_schema'],
+                                                 cfg['tiles'])
+    
+    else:
+        TypeError("Please provide either 'extent' or 'tile_list' in config.")
     #===========================================================================
     # Process multiple threads
     # reference: http://www.tutorialspoint.com/python3/python_multithreading.htm
@@ -227,11 +233,14 @@ def main():
     # Fill the queue
     queueLock.acquire()
     if union_view:
+        print("union_view is", union_view)
         workQueue.put(union_view)
     elif tiles_clipped:
+        print("tiles_clipped is", tiles_clipped)
         for tile in tiles_clipped:
             workQueue.put(tile)
     else:
+        print("tile_views is", tile_views)
         for tile in tile_views:
             workQueue.put(tile)
     queueLock.release()
@@ -265,7 +274,7 @@ def main():
     #=========================================================================
     # Reporting
     #=========================================================================
-    tiles = set(tiles)
+    tiles = set(cfg['tiles'])
     tiles_skipped = set(tiles_skipped)
     print("\nTotal number of tiles processed: " +
           str(len(tiles.difference(tiles_skipped))))
