@@ -159,8 +159,7 @@ def call_3dfier(db, tile, schema_tiles,
             print("\nCannot run 3dfier on tile " + tile)
             tile_skipped = tile
     else:
-        print("\nPointcloud file(s) " + pc_tiles +
-              " not available. Skipping tile.\n")
+        print("\nPointcloud file(s) " + str(pc_tiles) + " not available. Skipping tile.\n")
         tile_skipped = tile
         return(tile_skipped)
     

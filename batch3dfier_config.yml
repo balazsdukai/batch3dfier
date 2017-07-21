@@ -9,7 +9,7 @@ input_polygons:
         tile_schema: bag_tiles  # Name of the schema that contains the 2D tiles
         user_schema: # If user has no CREATE and DROP privilege on tile_schema, provide a schema where it has.. Mainly relevant when 'extent' is provided.
     extent: /home/bdukai/Development/batch3dfier/example_data/extent_small.geojson #/home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
-    tile_list:  # [25gn1_c1, 25gn1_c2, 25gn1_c3, 25gn1_c4] # list of tile IDs as they are in tile_schema | 'all' to use all IDs in tile_index
+    tile_list: # [25gn1_c1, 25gn1_c2, 25gn1_c3] # list of tile IDs as they are in tile_schema | 'all' to use all IDs in tile_index
 
 input_elevation:
     dataset_dir: /home/bdukai/Development/batch3dfier/example_data # location of pointcloud files
@@ -42,9 +42,9 @@ tile_index:
             unit_name: unit
 
 output:
-    format: CSV-BUILDINGS-MULTIPLE # CSV-BUILDINGS-MULTIPLE # OBJ # CSV-BUILDINGS-MULTIPLE
+    format: OBJ # CSV-BUILDINGS-MULTIPLE # OBJ # CSV-BUILDINGS-MULTIPLE
     dir: /home/bdukai/Data/3DBAG
 
-path_3dfier: /opt/3dfier-0.9.6/build/3dfier # location of the 3dfier executable
+path_3dfier: /home/bdukai/Development/3dfier/build/3dfier # location of the 3dfier executable
 
 
