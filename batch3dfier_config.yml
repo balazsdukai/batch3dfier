@@ -1,7 +1,7 @@
 input_polygons:
     # Database access for 2D footprints
     database:
-        dbname: batch3dfier_testing
+        dbname: batch3dfier_db
         host: localhost
         port: 5432
         user: batch3dfier_tester
