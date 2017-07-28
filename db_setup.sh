@@ -22,4 +22,8 @@ ogr2ogr -f PostgreSQL PG:"dbname=batch3dfier_test\
  ./example_data/bag_pand.geojson -nln pand\
  -skip-failure -a_srs EPSG:28992 -lco FID=gid -lco GEOMETRY_NAME=geom\
  -lco SCHEMA=bag
+ 
+python3 -m pytest -v ./batch3dfier/tests/test_footprints.py
 
+dropdb batch3dfier_test
+psql -d postgres -c "drop role batch3dfier;"
