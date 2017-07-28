@@ -37,6 +37,7 @@ As of version 0.5.0 *batch3dfier*:
     
     -   Some of the *3dfier* configuration parameters are not included in the *batch3dfier* configuration file. Mainly because there was no need for them. If you notice that something is missing, let me know in an issue or submit a pull request.
     
+To get further information please refer to the `documentation <https://github.com/balazsdukai/batch3dfier/tree/master/doc/batch3dfier.rst>`_.
 
 Plans for version 1.0.0
 -----------------------
