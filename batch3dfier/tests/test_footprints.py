@@ -1,8 +1,8 @@
 from batch3dfier import db
 from batch3dfier import footprints
 
-dbs = db.db(dbname='batch3dfier_testing', host='localhost', port='5432',
-         user= 'batch3dfier_tester', password='batch3d_test')
+dbs = db.db(dbname='batch3dfier_test', host='localhost', port='5432',
+         user= 'batch3dfier', password='batch3d_test')
 
 
 def test_update_tile_index():
