@@ -1,20 +1,22 @@
 input_polygons:
-    # Database access for 2D polygons
+    # Database access for 2D footprints
     database:
-        dbname: bag_current
+        dbname: batch3dfier_db
         host: localhost
-        port: "5432"
-        user: bag_user1
-        pw: bag2017
-        tile_schema: bag_tiles  # Name of the schema that contains the 2D tiles
-        user_schema: user1 # Name of the schema where the user has CREATE and DROP privilege. Mainly relevant when 'extent' is provided.
-    extent: #/home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
-    tile_list: 25gn1, 25ez1 # list of tile IDs as they are in tile_schema | 'all' to use all IDs in tile_index
+        port: 5432
+        user: batch3dfier
+        pw: batch3d_test
+        tile_schema: bag_tiles  # Name of the schema that contains the footprint tile views
+        user_schema: # If user has no CREATE and DROP privilege on tile_schema, provide a schema where it has.. Mainly relevant when 'extent' is provided.
+        tile_prefix: t_ # Prefix prepended to the footprint tile view names. If blank, its assumed that the views are named as the values in field referenced by tile_index:elevation:fields:unit_name
+    uniqueid: identification
+    extent: /home/bdukai/Development/batch3dfier/example_data/extent_small.geojson #/home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
+    tile_list: # ['t_25gn1_c1', 't_25gn1_c2', 't_25gn1_c3', 't_25gn1_c4'] # list of tile IDs as they are in tile_schema | [all] to use all IDs in tile_index
 
 input_elevation:
-    dataset_dir: /home/bdukai/Data/AHN3/ahn_filtered # location of pointcloud files
-    dataset_name: C_{tile}_filtered.LAZ # naming convention for the pointcloud files, {tile} is set to uppercase
-    tile_case: upper
+    dataset_dir: /home/bdukai/Development/batch3dfier/example_data # location of pointcloud files
+    dataset_name: c_{tile}.laz # naming convention for the pointcloud files
+    tile_case: lower
     # tile_case controls how the string matching is done for {tile} in order to
     # find the input_elevation files in dataset_dir. Allowed are 
     # 'upper' (e.g. C_25GN1_filtered.LAZ),
@@ -24,14 +26,27 @@ input_elevation:
     # match exactly the {tile} in dataset_name.
     # For the code see call3dfier()
 
-tile_index: ["ahn3", "ahn_units"]
-# [schema, table] that stores the tile extent/index polygons and IDs. Currently
-# the same tile index is used for both BAG and AHN.
+tile_index:
+    polygons:
+        # schema, table that stores the tile extent/index polygons and IDs
+        schema: tile_index
+        table: bag_index
+        fields:
+            primary_key: gid # name of the primary key field in bag_units
+            geometry: geom # name of the geometry field in bag_units
+            unit_name: unit # name of the field of the tile index unit names
+    elevation: 
+        schema: tile_index
+        table: ahn_index
+        fields:
+            primary_key: gid
+            geometry: geom
+            unit_name: unit
 
 output:
-    format: CSV-BUILDINGS-MULTIPLE # CSV-BUILDINGS-MULTIPLE # OBJ # CSV-BUILDINGS-MULTIPLE
+    format: OBJ # CSV-BUILDINGS-MULTIPLE # OBJ # CSV-BUILDINGS-MULTIPLE
     dir: /home/bdukai/Data/3DBAG
 
-path_3dfier: /opt/3dfier-0.9.6/build/3dfier # location of the 3dfier executable
+path_3dfier: /home/bdukai/Development/3dfier/build/3dfier # location of the 3dfier executable
 
 

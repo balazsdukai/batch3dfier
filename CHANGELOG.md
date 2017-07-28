@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+
+## [0.5.0] - 2017-07-28
+### Changed
+- the `tile_index` argument block is updated to handle both footprint and pointcloud tile indexes
+- db_setup.sh to reflect documentation
+
+### Added
+- `tile_prefix` to indicate the prefix on footprint tile views
+- Find intersecting pointcloud tiles for 2D footprint. Local directory is still searched for corresponding pointcloud files.
+- `uniqueid` config argument
+- detailed documentation
+
+### Removed
+- ID/name match between 2D and pointcloud tiles, because the same tile index is used for both datasets.
+- hard-coded BAG parameters
+
 ## [0.4.0] - 2017-07-18
 Completely revamped `bagtiler` module
 ### Changed
@@ -52,6 +68,7 @@ Completely revamped `bagtiler` module
 
 
 [Unreleased]: https://github.com/balazsdukai/batch3dfier/tree/develop
+[0.5.0]: https://github.com/balazsdukai/batch3dfier/releases/tag/v0.5.0
 [0.4.0]: https://github.com/balazsdukai/batch3dfier/releases/tag/v0.4.0
 [install-update]: https://github.com/balazsdukai/batch3dfier/releases/tag/install-update
 [0.3.0]: https://github.com/balazsdukai/batch3dfier/releases/tag/v0.3.0
