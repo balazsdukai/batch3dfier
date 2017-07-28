@@ -1,12 +1,13 @@
+============
 batch3dfier
-===========
+============
 
 |Licence| |Python 3.5|
 
 .. contents:: :local:
 
 Description
------------
+===========
 
 This Python program helps you to create 3D models of LoD1 from massive data sets. The idea for the program came from the need to efficiently create a 3D model for the whole Netherlands, using building footprints from the `BAG <https://www.kadaster.nl/basisregistratie-gebouwen>`__ dataset and the `AHN <http://www.ahn.nl/>`__ pointcloud.
 
@@ -44,7 +45,7 @@ See `the related issue <https://github.com/balazsdukai/batch3dfier/issues/1>`__.
 
 
 Requirements
-------------
+============
 
 `3dfier <https://github.com/tudelft3d/3dfier>`__
 
@@ -59,7 +60,7 @@ The package has been tested only with Python3.5 on Linux with the following pack
 
 
 Install and run
----------------
+===============
 
 -   Download and install the latest release:
 
