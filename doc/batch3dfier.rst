@@ -92,14 +92,14 @@ This will create a database view for each footprint tile in ``bag_index``, such 
 
     ::
     
-                          List of relations
-          Schema   |    Name    | Type |    Owner    
-        -----------+------------+------+-------------
-         bag_tiles | t_25gn1_c1 | view | batch3dfier
-         bag_tiles | t_25gn1_c2 | view | batch3dfier
-         bag_tiles | t_25gn1_c3 | view | batch3dfier
-         bag_tiles | t_25gn1_c4 | view | batch3dfier
-        (4 rows)
+                      List of relations
+      Schema   |    Name    | Type |    Owner    
+    -----------+------------+------+-------------
+     bag_tiles | t_25gn1_c1 | view | batch3dfier
+     bag_tiles | t_25gn1_c2 | view | batch3dfier
+     bag_tiles | t_25gn1_c3 | view | batch3dfier
+     bag_tiles | t_25gn1_c4 | view | batch3dfier
+    (4 rows)
 
 Where the name of the view is ``prefix_tiles`` + the value in field ``unit``. ``prefix_tiles`` can be ``None``.
 
