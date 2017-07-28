@@ -21,6 +21,7 @@ A *tile index* is data set of polygons that tesselates the footprints or the poi
 For an example, see the image below or ``/example_data/ahn_index.geojson``, ``/example_data/bag_index.geojson``.
 
 .. image:: https://github.com/balazsdukai/batch3dfier/blob/release/0.5.0/doc/tile_index.png
+    :align: center
 
 In *batch3dfier* the term *tile* refers to a data subset (footprints or pointcloud), that falls within the limits of a *tile index unit*. A footprint belongs to a tile, if its centroid is in the interior of a tile index unit or on the left/lower edge of a tile index unit. Therefore a footprint cannot belong to two tiles at the same time, thus there won't be overlaps between two neighbouring tiles.
 
@@ -92,14 +93,14 @@ This will create a database view for each footprint tile in ``bag_index``, such 
 
     ::
     
-                      List of relations
-      Schema   |    Name    | Type |    Owner    
-    -----------+------------+------+-------------
-     bag_tiles | t_25gn1_c1 | view | batch3dfier
-     bag_tiles | t_25gn1_c2 | view | batch3dfier
-     bag_tiles | t_25gn1_c3 | view | batch3dfier
-     bag_tiles | t_25gn1_c4 | view | batch3dfier
-    (4 rows)
+                          List of relations
+          Schema   |    Name    | Type |    Owner    
+        -----------+------------+------+-------------
+         bag_tiles | t_25gn1_c1 | view | batch3dfier
+         bag_tiles | t_25gn1_c2 | view | batch3dfier
+         bag_tiles | t_25gn1_c3 | view | batch3dfier
+         bag_tiles | t_25gn1_c4 | view | batch3dfier
+        (4 rows)
 
 Where the name of the view is ``prefix_tiles`` + the value in field ``unit``. ``prefix_tiles`` can be ``None``.
 
@@ -171,8 +172,9 @@ There are two options to tell batch3dfier what to extrude:
 -   *batch3dfier* searches a directory to find the pointcloud file(s) that match a given tile in the pointcloud tile index. The match between the file name and the tile index unit name is strict, the tile index unit name has to be part of the file name. This feature is handy when you have hundreds or thousands of pointcloud files (e.g. AHN).
 
    ::
-        input_elevation:
-            dataset_dir: /batch3dfier/example_data
+   
+       input_elevation:
+           dataset_dir: /batch3dfier/example_data
             
 -   Naming convention for the pointcloud files, where tile_case controls how the string matching is done for {tile} in order to find the ``input_elevation`` files in ``dataset_dir``. Allowed are options are:
 
@@ -181,6 +183,7 @@ There are two options to tell batch3dfier what to extrude:
     -   'mixed' (e.g. C_25Gn1_filtered.LAZ). In case of 'mixed', the values in ``tile_index: elevation: fields: unit_name`` should match exactly the {tile} in dataset_name.
     
    ::
+   
         dataset_name: c_{tile}.laz # naming convention for the pointcloud files
         tile_case: lower
     
