@@ -7,7 +7,7 @@ from batch3dfier import config
 @pytest.fixture("module")
 def batch3dfier_db(request):
     dbs = db.db(dbname='batch3dfier_db', host='localhost', port='5432',
-                user= 'batch3dfier_tester', password='batch3d_test')
+                user= 'batch3dfier', password='batch3d_test')
     def disconnect():
         dbs.close()
     request.addfinalizer(disconnect)

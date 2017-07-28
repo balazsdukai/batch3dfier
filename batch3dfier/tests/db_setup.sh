@@ -1,9 +1,9 @@
 
-psql -d postgres -c "create role batch3dfier with login password 'batch3d_test';"
+#psql -d postgres -c "create role batch3dfier with login password 'batch3d_test';"
 createdb -O batch3dfier batch3dfier_test 
 psql -d batch3dfier_test -c "create extension postgis;\
-create schema tile_index authorization batch3dfier;\
-create schema bag authorization batch3dfier;"
+                             create schema tile_index authorization batch3dfier;\
+                             create schema bag authorization batch3dfier;"
 
 ogr2ogr -f PostgreSQL PG:"dbname=batch3dfier_test\
  host=localhost port=5432 user=batch3dfier password=batch3d_test"\
@@ -26,4 +26,4 @@ ogr2ogr -f PostgreSQL PG:"dbname=batch3dfier_test\
 python3 -m pytest -v ./batch3dfier/tests/test_footprints.py
 
 dropdb batch3dfier_test
-psql -d postgres -c "drop role batch3dfier;"
+#psql -d postgres -c "drop role batch3dfier;"
