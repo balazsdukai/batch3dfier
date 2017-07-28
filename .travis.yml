@@ -1,0 +1,23 @@
+language: python
+python:
+  - "3.5"
+install: "pip install -r requirements.txt"
+script: pytest
+
+branches:
+  only:
+    - release/0.5.0
+
+sudo: enabled
+
+dist: trusty
+
+services:
+  - postgresql
+addons:
+  postgresql: "9.5"
+
+before_script:
+  - psql -U postgres -c "create role batch3dfier with login password 'batch3d_test';"
+  - createdb -O batch3dfier batch3dfier_db
+  - psql -d batch3dfier_db -f ./example_data/batch3dfier_db.sql 
