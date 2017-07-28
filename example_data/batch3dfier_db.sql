@@ -5,7 +5,7 @@
 -- Dumped from database version 9.5.7
 -- Dumped by pg_dump version 9.5.7
 
--- Started on 2017-07-28 19:17:41 CEST
+-- Started on 2017-07-28 20:41:24 CEST
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -16,7 +16,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 8 (class 2615 OID 552948)
+-- TOC entry 8 (class 2615 OID 554502)
 -- Name: bag; Type: SCHEMA; Schema: -; Owner: batch3dfier
 --
 
@@ -26,7 +26,7 @@ CREATE SCHEMA bag;
 ALTER SCHEMA bag OWNER TO batch3dfier;
 
 --
--- TOC entry 9 (class 2615 OID 552949)
+-- TOC entry 9 (class 2615 OID 554503)
 -- Name: bag_tiles; Type: SCHEMA; Schema: -; Owner: batch3dfier
 --
 
@@ -36,7 +36,7 @@ CREATE SCHEMA bag_tiles;
 ALTER SCHEMA bag_tiles OWNER TO batch3dfier;
 
 --
--- TOC entry 10 (class 2615 OID 552950)
+-- TOC entry 10 (class 2615 OID 554504)
 -- Name: tile_index; Type: SCHEMA; Schema: -; Owner: batch3dfier
 --
 
@@ -45,40 +45,6 @@ CREATE SCHEMA tile_index;
 
 ALTER SCHEMA tile_index OWNER TO batch3dfier;
 
---
--- TOC entry 1 (class 3079 OID 12395)
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
---
-
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-
-
---
--- TOC entry 3590 (class 0 OID 0)
--- Dependencies: 1
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
---
-
-COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-
-
---
--- TOC entry 2 (class 3079 OID 552951)
--- Name: postgis; Type: EXTENSION; Schema: -; Owner: 
---
-
-CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
-
-
---
--- TOC entry 3591 (class 0 OID 0)
--- Dependencies: 2
--- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner: 
---
-
-COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
-
-
 SET search_path = bag, pg_catalog;
 
 SET default_tablespace = '';
@@ -86,7 +52,7 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- TOC entry 200 (class 1259 OID 554424)
+-- TOC entry 200 (class 1259 OID 555978)
 -- Name: pand; Type: TABLE; Schema: bag; Owner: batch3dfier
 --
 
@@ -100,7 +66,7 @@ CREATE TABLE pand (
 ALTER TABLE pand OWNER TO batch3dfier;
 
 --
--- TOC entry 201 (class 1259 OID 554430)
+-- TOC entry 201 (class 1259 OID 555984)
 -- Name: pand_centroid; Type: TABLE; Schema: bag; Owner: batch3dfier
 --
 
@@ -113,7 +79,7 @@ CREATE TABLE pand_centroid (
 ALTER TABLE pand_centroid OWNER TO batch3dfier;
 
 --
--- TOC entry 202 (class 1259 OID 554436)
+-- TOC entry 202 (class 1259 OID 555990)
 -- Name: pand_gid_seq; Type: SEQUENCE; Schema: bag; Owner: batch3dfier
 --
 
@@ -128,7 +94,7 @@ CREATE SEQUENCE pand_gid_seq
 ALTER TABLE pand_gid_seq OWNER TO batch3dfier;
 
 --
--- TOC entry 3592 (class 0 OID 0)
+-- TOC entry 3562 (class 0 OID 0)
 -- Dependencies: 202
 -- Name: pand_gid_seq; Type: SEQUENCE OWNED BY; Schema: bag; Owner: batch3dfier
 --
@@ -139,7 +105,7 @@ ALTER SEQUENCE pand_gid_seq OWNED BY pand.gid;
 SET search_path = tile_index, pg_catalog;
 
 --
--- TOC entry 203 (class 1259 OID 554438)
+-- TOC entry 203 (class 1259 OID 555992)
 -- Name: bag_index; Type: TABLE; Schema: tile_index; Owner: batch3dfier
 --
 
@@ -156,7 +122,7 @@ ALTER TABLE bag_index OWNER TO batch3dfier;
 SET search_path = bag_tiles, pg_catalog;
 
 --
--- TOC entry 204 (class 1259 OID 554444)
+-- TOC entry 204 (class 1259 OID 555998)
 -- Name: t_25gn1_c1; Type: VIEW; Schema: bag_tiles; Owner: batch3dfier
 --
 
@@ -173,7 +139,7 @@ CREATE VIEW t_25gn1_c1 AS
 ALTER TABLE t_25gn1_c1 OWNER TO batch3dfier;
 
 --
--- TOC entry 205 (class 1259 OID 554448)
+-- TOC entry 205 (class 1259 OID 556002)
 -- Name: t_25gn1_c2; Type: VIEW; Schema: bag_tiles; Owner: batch3dfier
 --
 
@@ -190,7 +156,7 @@ CREATE VIEW t_25gn1_c2 AS
 ALTER TABLE t_25gn1_c2 OWNER TO batch3dfier;
 
 --
--- TOC entry 206 (class 1259 OID 554452)
+-- TOC entry 206 (class 1259 OID 556006)
 -- Name: t_25gn1_c3; Type: VIEW; Schema: bag_tiles; Owner: batch3dfier
 --
 
@@ -207,7 +173,7 @@ CREATE VIEW t_25gn1_c3 AS
 ALTER TABLE t_25gn1_c3 OWNER TO batch3dfier;
 
 --
--- TOC entry 207 (class 1259 OID 554456)
+-- TOC entry 207 (class 1259 OID 556010)
 -- Name: t_25gn1_c4; Type: VIEW; Schema: bag_tiles; Owner: batch3dfier
 --
 
@@ -226,7 +192,7 @@ ALTER TABLE t_25gn1_c4 OWNER TO batch3dfier;
 SET search_path = tile_index, pg_catalog;
 
 --
--- TOC entry 208 (class 1259 OID 554460)
+-- TOC entry 208 (class 1259 OID 556014)
 -- Name: ahn_index; Type: TABLE; Schema: tile_index; Owner: batch3dfier
 --
 
@@ -240,7 +206,7 @@ CREATE TABLE ahn_index (
 ALTER TABLE ahn_index OWNER TO batch3dfier;
 
 --
--- TOC entry 209 (class 1259 OID 554466)
+-- TOC entry 209 (class 1259 OID 556020)
 -- Name: ahn_index_gid_seq; Type: SEQUENCE; Schema: tile_index; Owner: batch3dfier
 --
 
@@ -255,7 +221,7 @@ CREATE SEQUENCE ahn_index_gid_seq
 ALTER TABLE ahn_index_gid_seq OWNER TO batch3dfier;
 
 --
--- TOC entry 3593 (class 0 OID 0)
+-- TOC entry 3563 (class 0 OID 0)
 -- Dependencies: 209
 -- Name: ahn_index_gid_seq; Type: SEQUENCE OWNED BY; Schema: tile_index; Owner: batch3dfier
 --
@@ -264,7 +230,7 @@ ALTER SEQUENCE ahn_index_gid_seq OWNED BY ahn_index.gid;
 
 
 --
--- TOC entry 210 (class 1259 OID 554468)
+-- TOC entry 210 (class 1259 OID 556022)
 -- Name: bag_index_gid_seq; Type: SEQUENCE; Schema: tile_index; Owner: batch3dfier
 --
 
@@ -279,7 +245,7 @@ CREATE SEQUENCE bag_index_gid_seq
 ALTER TABLE bag_index_gid_seq OWNER TO batch3dfier;
 
 --
--- TOC entry 3594 (class 0 OID 0)
+-- TOC entry 3564 (class 0 OID 0)
 -- Dependencies: 210
 -- Name: bag_index_gid_seq; Type: SEQUENCE OWNED BY; Schema: tile_index; Owner: batch3dfier
 --
@@ -290,7 +256,7 @@ ALTER SEQUENCE bag_index_gid_seq OWNED BY bag_index.gid;
 SET search_path = bag, pg_catalog;
 
 --
--- TOC entry 3437 (class 2604 OID 554470)
+-- TOC entry 3412 (class 2604 OID 556024)
 -- Name: gid; Type: DEFAULT; Schema: bag; Owner: batch3dfier
 --
 
@@ -300,7 +266,7 @@ ALTER TABLE ONLY pand ALTER COLUMN gid SET DEFAULT nextval('pand_gid_seq'::regcl
 SET search_path = tile_index, pg_catalog;
 
 --
--- TOC entry 3439 (class 2604 OID 554471)
+-- TOC entry 3414 (class 2604 OID 556025)
 -- Name: gid; Type: DEFAULT; Schema: tile_index; Owner: batch3dfier
 --
 
@@ -308,7 +274,7 @@ ALTER TABLE ONLY ahn_index ALTER COLUMN gid SET DEFAULT nextval('ahn_index_gid_s
 
 
 --
--- TOC entry 3438 (class 2604 OID 554472)
+-- TOC entry 3413 (class 2604 OID 556026)
 -- Name: gid; Type: DEFAULT; Schema: tile_index; Owner: batch3dfier
 --
 
@@ -318,7 +284,7 @@ ALTER TABLE ONLY bag_index ALTER COLUMN gid SET DEFAULT nextval('bag_index_gid_s
 SET search_path = bag, pg_catalog;
 
 --
--- TOC entry 3576 (class 0 OID 554424)
+-- TOC entry 3551 (class 0 OID 555978)
 -- Dependencies: 200
 -- Data for Name: pand; Type: TABLE DATA; Schema: bag; Owner: batch3dfier
 --
@@ -1807,7 +1773,7 @@ COPY pand (gid, identification, geom) FROM stdin;
 
 
 --
--- TOC entry 3577 (class 0 OID 554430)
+-- TOC entry 3552 (class 0 OID 555984)
 -- Dependencies: 201
 -- Data for Name: pand_centroid; Type: TABLE DATA; Schema: bag; Owner: batch3dfier
 --
@@ -3296,7 +3262,7 @@ COPY pand_centroid (gid, geom) FROM stdin;
 
 
 --
--- TOC entry 3595 (class 0 OID 0)
+-- TOC entry 3565 (class 0 OID 0)
 -- Dependencies: 202
 -- Name: pand_gid_seq; Type: SEQUENCE SET; Schema: bag; Owner: batch3dfier
 --
@@ -3304,22 +3270,10 @@ COPY pand_centroid (gid, geom) FROM stdin;
 SELECT pg_catalog.setval('pand_gid_seq', 1, false);
 
 
-SET search_path = public, pg_catalog;
-
---
--- TOC entry 3436 (class 0 OID 553248)
--- Dependencies: 186
--- Data for Name: spatial_ref_sys; Type: TABLE DATA; Schema: public; Owner: bdukai
---
-
-COPY spatial_ref_sys  FROM stdin;
-\.
-
-
 SET search_path = tile_index, pg_catalog;
 
 --
--- TOC entry 3580 (class 0 OID 554460)
+-- TOC entry 3555 (class 0 OID 556014)
 -- Dependencies: 208
 -- Data for Name: ahn_index; Type: TABLE DATA; Schema: tile_index; Owner: batch3dfier
 --
@@ -3331,7 +3285,7 @@ COPY ahn_index (gid, unit, geom) FROM stdin;
 
 
 --
--- TOC entry 3596 (class 0 OID 0)
+-- TOC entry 3566 (class 0 OID 0)
 -- Dependencies: 209
 -- Name: ahn_index_gid_seq; Type: SEQUENCE SET; Schema: tile_index; Owner: batch3dfier
 --
@@ -3340,7 +3294,7 @@ SELECT pg_catalog.setval('ahn_index_gid_seq', 1, false);
 
 
 --
--- TOC entry 3579 (class 0 OID 554438)
+-- TOC entry 3554 (class 0 OID 555992)
 -- Dependencies: 203
 -- Data for Name: bag_index; Type: TABLE DATA; Schema: tile_index; Owner: batch3dfier
 --
@@ -3354,7 +3308,7 @@ COPY bag_index (gid, unit, geom, geom_border) FROM stdin;
 
 
 --
--- TOC entry 3597 (class 0 OID 0)
+-- TOC entry 3567 (class 0 OID 0)
 -- Dependencies: 210
 -- Name: bag_index_gid_seq; Type: SEQUENCE SET; Schema: tile_index; Owner: batch3dfier
 --
@@ -3365,7 +3319,7 @@ SELECT pg_catalog.setval('bag_index_gid_seq', 1, false);
 SET search_path = bag, pg_catalog;
 
 --
--- TOC entry 3442 (class 2606 OID 554474)
+-- TOC entry 3417 (class 2606 OID 556028)
 -- Name: pand_pkey; Type: CONSTRAINT; Schema: bag; Owner: batch3dfier
 --
 
@@ -3376,7 +3330,7 @@ ALTER TABLE ONLY pand
 SET search_path = tile_index, pg_catalog;
 
 --
--- TOC entry 3450 (class 2606 OID 554476)
+-- TOC entry 3425 (class 2606 OID 556030)
 -- Name: ahn_index_pkey; Type: CONSTRAINT; Schema: tile_index; Owner: batch3dfier
 --
 
@@ -3385,7 +3339,7 @@ ALTER TABLE ONLY ahn_index
 
 
 --
--- TOC entry 3447 (class 2606 OID 554478)
+-- TOC entry 3422 (class 2606 OID 556032)
 -- Name: bag_index_pkey; Type: CONSTRAINT; Schema: tile_index; Owner: batch3dfier
 --
 
@@ -3396,7 +3350,7 @@ ALTER TABLE ONLY bag_index
 SET search_path = bag, pg_catalog;
 
 --
--- TOC entry 3443 (class 1259 OID 554479)
+-- TOC entry 3418 (class 1259 OID 556033)
 -- Name: pand_centroid_geom_idx; Type: INDEX; Schema: bag; Owner: batch3dfier
 --
 
@@ -3404,7 +3358,7 @@ CREATE INDEX pand_centroid_geom_idx ON pand_centroid USING gist (geom);
 
 
 --
--- TOC entry 3440 (class 1259 OID 554480)
+-- TOC entry 3415 (class 1259 OID 556034)
 -- Name: pand_geom_geom_idx; Type: INDEX; Schema: bag; Owner: batch3dfier
 --
 
@@ -3414,7 +3368,7 @@ CREATE INDEX pand_geom_geom_idx ON pand USING gist (geom);
 SET search_path = tile_index, pg_catalog;
 
 --
--- TOC entry 3448 (class 1259 OID 554481)
+-- TOC entry 3423 (class 1259 OID 556035)
 -- Name: ahn_index_geom_geom_idx; Type: INDEX; Schema: tile_index; Owner: batch3dfier
 --
 
@@ -3422,7 +3376,7 @@ CREATE INDEX ahn_index_geom_geom_idx ON ahn_index USING gist (geom);
 
 
 --
--- TOC entry 3444 (class 1259 OID 554482)
+-- TOC entry 3419 (class 1259 OID 556036)
 -- Name: bag_index_geom_border_idx; Type: INDEX; Schema: tile_index; Owner: batch3dfier
 --
 
@@ -3430,26 +3384,14 @@ CREATE INDEX bag_index_geom_border_idx ON bag_index USING gist (geom_border);
 
 
 --
--- TOC entry 3445 (class 1259 OID 554483)
+-- TOC entry 3420 (class 1259 OID 556037)
 -- Name: bag_index_geom_geom_idx; Type: INDEX; Schema: tile_index; Owner: batch3dfier
 --
 
 CREATE INDEX bag_index_geom_geom_idx ON bag_index USING gist (geom);
 
 
---
--- TOC entry 3589 (class 0 OID 0)
--- Dependencies: 11
--- Name: public; Type: ACL; Schema: -; Owner: postgres
---
-
-REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON SCHEMA public FROM postgres;
-GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO PUBLIC;
-
-
--- Completed on 2017-07-28 19:17:42 CEST
+-- Completed on 2017-07-28 20:41:24 CEST
 
 --
 -- PostgreSQL database dump complete
