@@ -1,5 +1,5 @@
 shapely
 fiona
 psycopg2
-yaml
+pyyaml
 pytest
