@@ -16,6 +16,9 @@ services:
   - postgresql
 addons:
   postgresql: "9.5"
+  apt:
+    packages:
+      - postgresql-9.5-postgis-2.3
 
 before_script:
   - psql -U postgres -c "create role batch3dfier with login password 'batch3d_test'"
