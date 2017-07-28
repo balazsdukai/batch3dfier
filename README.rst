@@ -1,8 +1,8 @@
-============
+===========
 batch3dfier
-============
+===========
 
-|Licence| |Python 3.5|
+|Licence| |Python 3.5| |build|
 
 .. contents:: :local:
 
@@ -85,4 +85,6 @@ Install and run
 .. |Licence| image:: https://img.shields.io/badge/licence-GPL--3-blue.svg
    :target: http://www.gnu.org/licenses/gpl-3.0.html
 .. |Python 3.5| image:: https://img.shields.io/badge/python-3.5-blue.svg
+.. |build| image:: https://travis-ci.org/balazsdukai/batch3dfier.svg?branch=master
+   :target: https://travis-ci.org/balazsdukai/batch3dfier
 
