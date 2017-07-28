@@ -1,5 +1,5 @@
 input_polygons:
-    # Database access for 2D polygons
+    # Database access for 2D footprints
     database:
         dbname: batch3dfier_testing
         host: localhost
