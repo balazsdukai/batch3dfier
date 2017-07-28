@@ -4,14 +4,14 @@ input_polygons:
         dbname: batch3dfier_db
         host: localhost
         port: 5432
-        user: batch3dfier_tester
+        user: batch3dfier
         pw: batch3d_test
         tile_schema: bag_tiles  # Name of the schema that contains the footprint tile views
         user_schema: # If user has no CREATE and DROP privilege on tile_schema, provide a schema where it has.. Mainly relevant when 'extent' is provided.
         tile_prefix: t_ # Prefix prepended to the footprint tile view names. If blank, its assumed that the views are named as the values in field referenced by tile_index:elevation:fields:unit_name
     uniqueid: identification
-    extent: #/home/bdukai/Development/batch3dfier/example_data/extent_small.geojson #/home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
-    tile_list: ['t_25gn1_c1', 't_25gn1_c2', 't_25gn1_c3', 't_25gn1_c4'] # list of tile IDs as they are in tile_schema | [all] to use all IDs in tile_index
+    extent: /home/bdukai/Development/batch3dfier/example_data/extent_small.geojson #/home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
+    tile_list: # ['t_25gn1_c1', 't_25gn1_c2', 't_25gn1_c3', 't_25gn1_c4'] # list of tile IDs as they are in tile_schema | [all] to use all IDs in tile_index
 
 input_elevation:
     dataset_dir: /home/bdukai/Development/batch3dfier/example_data # location of pointcloud files
