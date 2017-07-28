@@ -42,5 +42,6 @@ setup(name='batch3dfier',
         'shapely',
         'fiona',
         'psycopg2',
-        'yaml'
+        'yaml',
+        'pytest'
     ])
