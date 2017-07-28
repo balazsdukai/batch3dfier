@@ -2,7 +2,7 @@ from batch3dfier.batch3dfierapp import parse_config_yaml
 
 def test_parse_config_yaml_1():
     args_in = {}
-    args_in['cfg_file'] = "/home/bdukai/Development/batch3dfier/test_batch3dfier_config.yml"
+    args_in['cfg_file'] = "test_batch3dfier_config.yml"
     cfg = parse_config_yaml(args_in)
     cfg.pop('dbase')
     assert cfg == {'elevation': {'fields': {'geometry': 'geom',
