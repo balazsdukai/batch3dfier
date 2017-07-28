@@ -3,8 +3,8 @@ import yaml
 from batch3dfier import db
 from batch3dfier import config
 
-dbs = db.db(dbname='batch3dfier_testing', host='localhost', port='5432',
-         user= 'batch3dfier_tester', password='batch3d_test')
+dbs = db.db(dbname='batch3dfier_test', host='localhost', port='5432',
+         user= 'batch3dfier', password='batch3d_test')
 
 cfg = {'tile_index': {'elevation': {'fields': {'geometry': 'geom',
     'primary_key': 'gid',
