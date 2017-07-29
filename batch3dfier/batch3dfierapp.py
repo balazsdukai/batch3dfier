@@ -33,7 +33,7 @@ def parse_console_args():
     
     args = parser.parse_args()
     args_in = {}
-    args_in['cfg_file'] = os.path.abspath(args.config)
+    args_in['cfg_file'] = os.path.abspath(args.path)
     args_in['cfg_dir'] = os.path.dirname(args_in['cfg_file'])
     args_in['threads'] = args.threads
     

@@ -31,6 +31,8 @@ Preparing the tiles
 
 In order to be able to 3dfy any size of data set, *batch3dfier* processes the input piece by piece (or tile by tile). Therefore the bottleneck becomes the size of a single footprint and pointcloud tile. Both tiles need to be *small* enough, so that *3dfier* can process them.
 
+In case you are wondering how to generate a tile index, the *Create grid* Processing algorithm in QGIS might be a good starting point.
+
 
 Setting up the footprint tiles in a database
 --------------------------------------------
@@ -145,23 +147,23 @@ Following the convention of *3dfier*, *batch3dfier* also uses a YAML configurati
     
         uniqueid: identification
     
-There are two options to tell batch3dfier what to extrude:
+There are three options to tell batch3dfier what to extrude:
 
-1. provide a polygon for the area
+1. Provide a polygon for the area. If the extent spans across multiple tiles and the area of the extent is smaller than the area of one tile, then the tile-sections within the extent are united. If the area of the extent is larger than that of a tile, then the tile-sections are not united.
 
    ::
 
        input_polygons:
            extent: path/to/polygon
 
-2. give a list of 2D tile IDs
+2. Give a list of 2D tile IDs
 
    ::
 
        input_polygons:
            tile_list: [t_25gn1_c1, t_25gn1_c2]
            
-3. process all tiles found in ``tile_index: polygons: fields: unit_name:``
+3. Process all tiles found in ``tile_index: polygons: fields: unit_name:``
 
    ::
 
@@ -228,7 +230,7 @@ Run
 
 -   Run *batch3dfier* from the command line:
 
-    ``batch3dfy ./batch3dfier_config.yml``
+    ``batch3dfy batch3dfier_config.yml``
 
     Where ``batch3dfier_config.yml`` is the YAML configuration file that *batch3dfier* uses (similarly to *3dfier*).
 
@@ -238,7 +240,7 @@ Run
 
 -   In order to process several tiles efficiently *batch3dfier* starts 3 concurrent threads by default, each of them processing a single tile at a time. Set the number of threads:
 
-    ``batch3dfy -t 4 ./batch3dfier_config.yml``
+    ``batch3dfy -t 4 batch3dfier_config.yml``
 
 Contact/Contributing
 ====================
