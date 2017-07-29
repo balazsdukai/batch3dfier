@@ -20,7 +20,7 @@ A *tile index* is data set of polygons that tesselates the footprints or the poi
 
 For an example, see the image below or ``/example_data/ahn_index.geojson``, ``/example_data/bag_index.geojson``.
 
-.. image:: https://github.com/balazsdukai/batch3dfier/blob/release/0.5.0/doc/tile_index.png
+.. image:: https://github.com/balazsdukai/batch3dfier/blob/master/doc/tile_index.png
    :align: center
 
 In *batch3dfier* the term *tile* refers to a data subset (footprints or pointcloud), that falls within the limits of a *tile index unit*. A footprint belongs to a tile, if its centroid is in the interior of a tile index unit or on the left/lower edge of a tile index unit. Therefore a footprint cannot belong to two tiles at the same time, thus there won't be overlaps between two neighbouring tiles.
