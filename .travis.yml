@@ -9,7 +9,7 @@ script: tox
 
 branches:
   only:
-    - development
+    - develop
     - release/*
     - master
 
