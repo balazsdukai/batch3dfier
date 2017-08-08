@@ -1,3 +1,4 @@
+# set up python and packages
 language: python
 python:
   - "3.5"
@@ -10,9 +11,9 @@ branches:
     - master
 
 sudo: enabled
-
 dist: trusty
 
+# set up postgres
 services:
   - postgresql
 addons:
@@ -21,6 +22,7 @@ addons:
     packages:
       - postgresql-9.5-postgis-2.3
 
+# create a test database
 before_script:
   - psql -U postgres -c "create role batch3dfier with login password 'batch3d_test'"
   - createdb -O batch3dfier batch3dfier_db
