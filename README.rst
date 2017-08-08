@@ -2,7 +2,7 @@
 batch3dfier
 ===========
 
-|Licence| |Python 3.4+| |build|
+|Licence| |Python 3.4+| |build| |codecov|
 
 .. contents:: :local:
 
@@ -94,4 +94,8 @@ Example data sets are in ``batch3dfier/example_data``.
 .. |Python 3.4+| image:: https://img.shields.io/badge/python-3.4+-blue.svg
 .. |build| image:: https://travis-ci.org/balazsdukai/batch3dfier.svg?branch=master
    :target: https://travis-ci.org/balazsdukai/batch3dfier
+.. |codecov| image:: https://codecov.io/gh/balazsdukai/batch3dfier/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/balazsdukai/batch3dfier
+
+
 
