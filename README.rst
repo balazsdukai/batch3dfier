@@ -50,9 +50,9 @@ Requirements
 
 `3dfier <https://github.com/tudelft3d/3dfier>`__
 
-Python 3
+Python 3.4+
 
-The package has been tested only with Python3.5 on Linux with the following packages:
+The package has been tested with Python3.4-3.6 on Linux with the following packages:
 
 -  PyYAML (3.11)
 -  psycopg2 (2.7)
