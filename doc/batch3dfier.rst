@@ -12,11 +12,11 @@ A few notes on terminology...
 
 The term BAG refers to the Dutch official data set of buildings and addresses (`Basisregistraties Adressen en Gebouwen <https://www.kadaster.nl/basisregistratie-gebouwen>`__).
 
-The term AHN refers to the Dutch, country-wide elevation dataset (pointcloud) (`Actueel Hoogtebestand Nederland <http://www.ahn.nl/>`__).
+The term AHN refers to the Dutch, country-wide elevation data set (pointcloud) (`Actueel Hoogtebestand Nederland <http://www.ahn.nl/>`__).
 
 The term *footprints* refers to a 2D polygon data set that is to be 3dfied. I used the BAG.
 
-A *tile index* is data set of polygons that tesselates the footprints or the pointcloud data. A *tile index unit* is one polygon in the *tile index* and it usually has an *ID* (e.g. 1) and a *name* (e.g. 25gn1_a) that uniquely identifies it. Yes, both *ID* and *name* do the same thing, uniquely identify a polygon thus one of them is redundant. However, *ID* can serve as a primary key while *name* as a human friendly identifier for quickly locating tiles. This concept is used by the `AHN tile index <http://www.ahn.nl/binaries/content/assets/ahn-nl/downloads/ahn_units.zip>`__, which served as an example for development.
+A *tile index* is data set of polygons that tessellates the footprints or the pointcloud data. A *tile index unit* is one polygon in the *tile index* and it usually has an *ID* (e.g. 1) and a *name* (e.g. 25gn1_a) that uniquely identifies it. Yes, both *ID* and *name* do the same thing, uniquely identify a polygon thus one of them is redundant. However, *ID* can serve as a primary key while *name* as a human friendly identifier for quickly locating tiles. This concept is used by the `AHN tile index <http://www.ahn.nl/binaries/content/assets/ahn-nl/downloads/ahn_units.zip>`__, which served as an example for development.
 
 For an example, see the image below or ``/example_data/ahn_index.geojson``, ``/example_data/bag_index.geojson``.
 
@@ -241,6 +241,14 @@ Run
 -   In order to process several tiles efficiently *batch3dfier* starts 3 concurrent threads by default, each of them processing a single tile at a time. Set the number of threads:
 
     ``batch3dfy -t 4 batch3dfier_config.yml``
+    
+When *batch3dfier* is finished, it will report you the number of tiles it processed and skipped. Currently this reporting is very rudimentary and it mainly measures whether the tiles and their corresponding pointcloud files are found in the *tile_schema* and *data set_dir*. A tile is *skipped* when the corresponding pointcloud file is not found in *data set_dir*. Failures of *3dfier* are not reported here, thus it is possible to get all tiles processed, but *3dfier* failing completely. Such a scenario might occur when *batch3dfier* can connect to the database but *3dfier* cannot.
+
+    ::
+   
+        Total number of tiles processed: 4
+        Total number of tiles skipped: 0
+        Done.
 
 Contact/Contributing
 ====================
@@ -253,9 +261,8 @@ You can send me an e-mail at balazs.dukai AT gmail DOT com (please head your sub
 
 The development is still in early stages, thus things can change drastically. Nevertheless, issues, comments, pull request are very welcome. Take a look at `the issue on v1.0.0 <https://github.com/balazsdukai/batch3dfier/issues/1>`__ if you want a hint where to start.
 
-Testing, testing, testing. Always appreciated.
+The project follows the `git flow <http://nvie.com/posts/a-successful-git-branching-model/>`__ branching model. Here is a `cheat sheet <https://danielkummer.github.io/git-flow-cheatsheet/>`__ for a quick start.
 
+Releases, tags adhere to the `semantic versioning <http://semver.org/spec/v2.0.0.html>`__ scheme.
 
-
-
-
+Testing, testing, testing. Always appreciated. 
