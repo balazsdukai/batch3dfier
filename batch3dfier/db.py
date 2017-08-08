@@ -7,6 +7,7 @@ import psycopg2
 
 class db(object):
     """A database connection class """
+
     def __init__(self, dbname, host, port, user, password):
         self.dbname = dbname
         self.host = host
@@ -14,11 +15,12 @@ class db(object):
         self.user = user
         self.password = password
         try:
-            self.conn = psycopg2.connect("dbname=%s host=%s port=%s \
-                                          user=%s password=%s" \
-                                          % (dbname, host, port, user, password))
+            self.conn = psycopg2.connect(
+                "dbname=%s host=%s port=%s \
+                                          user=%s password=%s" %
+                (dbname, host, port, user, password))
             print("Opened database successfully")
-        except:
+        except BaseException:
             print("I'm unable to connect to the database. Exiting function.")
 
     def sendQuery(self, query):
@@ -27,7 +29,7 @@ class db(object):
         Parameters
         ----------
         query : str
-            
+
 
         Returns
         -------
@@ -37,8 +39,7 @@ class db(object):
         with self.conn:
             with self.conn.cursor() as cur:
                 cur.execute(query)
-                
-    
+
     def getQuery(self, query):
         """DB query where the results need to return (e.g. SELECT)
 
@@ -46,7 +47,7 @@ class db(object):
         ----------
         query : str
             SQL query
-            
+
 
         Returns
         -------
@@ -57,7 +58,6 @@ class db(object):
             with self.conn.cursor() as cur:
                 cur.execute(query)
                 return(cur.fetchall())
-        
 
     def vacuum(self, schema, table):
         """Vacuum analyze a table
@@ -73,14 +73,15 @@ class db(object):
         -------
         nothing
         """
-        self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        self.conn.set_isolation_level(
+            psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         schema = psycopg2.sql.Identifier(schema)
         table = psycopg2.sql.Identifier(table)
         query = psycopg2.sql.SQL("""
         VACUUM ANALYZE {schema}.{table};
         """).format(schema=schema, table=table)
         self.sendQuery(query)
-    
+
     def close(self):
         """ """
         self.conn.close()

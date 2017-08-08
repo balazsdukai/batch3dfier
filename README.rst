@@ -2,7 +2,7 @@
 batch3dfier
 ===========
 
-|Licence| |Python 3.5| |build|
+|Licence| |Python 3.4+| |build| |codecov|
 
 .. contents:: :local:
 
@@ -37,7 +37,7 @@ As of version 0.5.0 *batch3dfier*:
     
     -   Some of the *3dfier* configuration parameters are not included in the *batch3dfier* configuration file. Mainly because there was no need for them. If you notice that something is missing, let me know in an issue or submit a pull request.
     
-To get further information please refer to the `documentation <https://github.com/balazsdukai/batch3dfier/tree/master/doc/batch3dfier.rst>`_.
+To get further information please refer to the `documentation <https://github.com/balazsdukai/batch3dfier/tree/master/docs/batch3dfier.rst>`_.
 
 Plans for version 1.0.0
 -----------------------
@@ -50,9 +50,9 @@ Requirements
 
 `3dfier <https://github.com/tudelft3d/3dfier>`__
 
-Python 3
+Python 3.4+
 
-The package has been tested only with Python3.5 on Linux with the following packages:
+The package has been tested with Python3.4-3.6 on Linux with the following packages:
 
 -  PyYAML (3.11)
 -  psycopg2 (2.7)
@@ -65,26 +65,37 @@ Install and run
 
 -   Download and install the latest release:
 
-    ``pip3 install git+https://github.com/balazsdukai/batch3dfier``
+    ``$ pip3 install git+https://github.com/balazsdukai/batch3dfier``
 
 -   Run *batch3dfier* from the command line:
 
-    ``batch3dfy ./batch3dfier_config.yml``
+    ``$ batch3dfy ./batch3dfier_config.yml``
 
     Where ``batch3dfier_config.yml`` is the YAML configuration file that *batch3dfier* uses (similarly to *3dfier*).
 
 -   Get help:
 
-    ``batch3dfy -h``
+    ``$ batch3dfy -h``
 
 -   In order to process several tiles efficiently *batch3dfier* starts 3  concurrent threads by default, each of them processing a single tile at a time. Set the number of threads:
 
-    ``batch3dfy -t 4 ./batch3dfier_config.yml``
+    ``$ batch3dfy -t 4 ./batch3dfier_config.yml``
+    
+-   Run the tests:
+
+    ``$ pytest batch3dfier/tests``
+    
+Example data sets are in ``batch3dfier/example_data``.
+
 
 
 .. |Licence| image:: https://img.shields.io/badge/licence-GPL--3-blue.svg
    :target: http://www.gnu.org/licenses/gpl-3.0.html
-.. |Python 3.5| image:: https://img.shields.io/badge/python-3.5-blue.svg
+.. |Python 3.4+| image:: https://img.shields.io/badge/python-3.4+-blue.svg
 .. |build| image:: https://travis-ci.org/balazsdukai/batch3dfier.svg?branch=master
    :target: https://travis-ci.org/balazsdukai/batch3dfier
+.. |codecov| image:: https://codecov.io/gh/balazsdukai/batch3dfier/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/balazsdukai/batch3dfier
+
+
 

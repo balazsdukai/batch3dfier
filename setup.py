@@ -27,7 +27,9 @@ setup(name='batch3dfier',
         
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
+        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         
         'Operating System :: POSIX :: Linux'
     ],
@@ -37,11 +39,5 @@ setup(name='batch3dfier',
         'console_scripts': ['batch3dfy = batch3dfier.batch3dfierapp:main']
     },
     include_package_data=True,
-    zip_safe=False,
-    install_requires=[
-        'shapely',
-        'fiona',
-        'psycopg2',
-        'pyyaml',
-        'pytest'
-    ])
+    zip_safe=False
+    )

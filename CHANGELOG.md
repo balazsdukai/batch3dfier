@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.6.0] - 2017-08-08
+### Added
+- support for python 3.4-3.6
+- code coverage reporting
+- pep8 tests
 
 ## [0.5.0] - 2017-07-28
 ### Changed
@@ -68,6 +73,7 @@ Completely revamped `bagtiler` module
 
 
 [Unreleased]: https://github.com/balazsdukai/batch3dfier/tree/develop
+[0.6.0]: https://github.com/balazsdukai/batch3dfier/releases/tag/v0.6.0
 [0.5.0]: https://github.com/balazsdukai/batch3dfier/releases/tag/v0.5.0
 [0.4.0]: https://github.com/balazsdukai/batch3dfier/releases/tag/v0.4.0
 [install-update]: https://github.com/balazsdukai/batch3dfier/releases/tag/install-update

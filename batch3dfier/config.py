@@ -11,16 +11,15 @@ from psycopg2 import sql
 import fiona
 
 
-
-def call_3dfier(db, tile, schema_tiles, 
-               pc_file_name, pc_tile_case, pc_dir, 
-               table_index_pc, fields_index_pc,
-               table_index_footprint, fields_index_footprint, uniqueid,
-               extent_ewkb, clip_prefix, prefix_tile_footprint,
-               yml_dir, tile_out, output_format, output_dir,
-               path_3dfier, thread):
+def call_3dfier(db, tile, schema_tiles,
+                pc_file_name, pc_tile_case, pc_dir,
+                table_index_pc, fields_index_pc,
+                table_index_footprint, fields_index_footprint, uniqueid,
+                extent_ewkb, clip_prefix, prefix_tile_footprint,
+                yml_dir, tile_out, output_format, output_dir,
+                path_3dfier, thread):
     """Call 3dfier with the YAML config created by yamlr().
-    
+
     Note
     ----
     For the rest of the parameters see batch3dfier_config.yml.
@@ -30,7 +29,7 @@ def call_3dfier(db, tile, schema_tiles,
     db : db Class instance
     tile : str
         Name of of the 2D tile.
-    schema_tiles : str 
+    schema_tiles : str
         Schema of the footprint tiles.
     pc_file_name : str
         Naming convention for the pointcloud files. See 'dataset_name' in batch3dfier_config.yml.
@@ -42,16 +41,16 @@ def call_3dfier(db, tile, schema_tiles,
         Name/ID of the active thread.
     extent_ewkb : str
         EWKB representation of 'extent' in batch3dfier_config.yml.
-    clip_prefix : str 
+    clip_prefix : str
         Prefix for naming the clipped/united views. This value shouldn't be a substring of the pointcloud file names.
     prefix_tile_footprint : str or None
-        Prefix prepended to the footprint tile view names. If None, the views are named as 
+        Prefix prepended to the footprint tile view names. If None, the views are named as
         the values in fields_index_fooptrint['unit_name'].
-        
+
     Returns
     -------
     list
-        The tiles that are skipped because no corresponding pointcloud file 
+        The tiles that are skipped because no corresponding pointcloud file
         was found in 'dataset_dir' (YAML)
 
     """
@@ -59,15 +58,15 @@ def call_3dfier(db, tile, schema_tiles,
                              table_index_footprint, fields_index_footprint,
                              extent_ewkb, tile_footprint=tile,
                              prefix_tile_footprint=prefix_tile_footprint)
-    
+
     pc_path = find_pc_files(pc_tiles, pc_dir, pc_file_name, pc_tile_case)
-    
+
     # prepare output file name
     if not tile_out:
         tile_out = tile.replace(clip_prefix, '', 1)
 
-    # Call 3dfier --------------------------------------------------------------
-    
+    # Call 3dfier ------------------------------------------------------------
+
     if pc_path:
         # Needs a YAML per thread so one doesn't overwrite it while the other
         # uses it
@@ -81,7 +80,7 @@ def call_3dfier(db, tile, schema_tiles,
         try:
             with open(yml_path, "w") as text_file:
                 text_file.write(config)
-        except:
+        except BaseException:
             print("Error: cannot write _config.yml")
         # Prep output file name
         if "obj" in output_format.lower():
@@ -97,16 +96,18 @@ def call_3dfier(db, tile, schema_tiles,
             yml=yml_path, out=output_path)
         try:
             call(command, shell=True)
-        except:
+        except BaseException:
             print("\nCannot run 3dfier on tile " + tile)
             tile_skipped = tile
     else:
-        print("\nPointcloud file(s) " + str(pc_tiles) + " not available. Skipping tile.\n")
+        print(
+            "\nPointcloud file(s) " +
+            str(pc_tiles) +
+            " not available. Skipping tile.\n")
         tile_skipped = tile
         return(tile_skipped)
-    
-    return(None)
 
+    return(None)
 
 
 def yamlr(dbname, host, user, pw, schema_tiles,
@@ -116,7 +117,7 @@ def yamlr(dbname, host, user, pw, schema_tiles,
     Parameters
     ----------
     See batch3dfier_config.yml.
-        
+
 
     Returns
     -------
@@ -132,7 +133,7 @@ def yamlr(dbname, host, user, pw, schema_tiles,
     else:
         pc_dataset += "- " + pc_path[0]
 
-    # !!! Do not correct the indentation of the config template, otherwise it 
+    # !!! Do not correct the indentation of the config template, otherwise it
     # results in 'YAML::TypedBadConversion<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >'
     # because every line is indented as here
     config = """
@@ -176,11 +177,10 @@ output:
     return(config)
 
 
-
 def find_pc_files(pc_tiles, pc_dir, pc_file_name, pc_tile_case):
     """Find pointcloud files in the file system when given a list of pointcloud tile names
     """
-    # Prepare AHN file names ---------------------------------------------------
+    # Prepare AHN file names -------------------------------------------------
     if pc_tile_case == "upper":
         tiles = [pc_file_name.format(tile=t.upper()) for t in pc_tiles]
     elif pc_tile_case == "lower":
@@ -203,13 +203,13 @@ def find_pc_tiles(db, table_index_pc, fields_index_pc,
                   extent_ewkb=None, tile_footprint=None,
                   prefix_tile_footprint=None):
     """Find pointcloud tiles in tile index that intersect the extent or the footprint tile.
-    
+
     Parameters
     ----------
     prefix_tile_footprint : str or None
-        Prefix prepended to the footprint tile view names. If None, the views are named as 
+        Prefix prepended to the footprint tile view names. If None, the views are named as
         the values in fields_index_fooptrint['unit_name'].
-        
+
     """
     if extent_ewkb:
         tiles = get_2Dtiles(db, table_index_pc, fields_index_pc, extent_ewkb)
@@ -218,17 +218,18 @@ def find_pc_tiles(db, table_index_pc, fields_index_pc,
         table_pc_q = sql.Identifier(table_index_pc['table'])
         field_pc_geom_q = sql.Identifier(fields_index_pc['geometry'])
         field_pc_unit_q = sql.Identifier(fields_index_pc['unit_name'])
-        
+
         schema_ftpr_q = sql.Identifier(table_index_footprint['schema'])
         table_ftpr_q = sql.Identifier(table_index_footprint['table'])
         field_ftpr_geom_q = sql.Identifier(fields_index_footprint['geometry'])
         field_ftpr_unit_q = sql.Identifier(fields_index_footprint['unit_name'])
-        
+
         if prefix_tile_footprint:
-            tile_footprint = tile_footprint.replace(prefix_tile_footprint, '', 1)
-        
+            tile_footprint = tile_footprint.replace(
+                prefix_tile_footprint, '', 1)
+
         tile_q = sql.Literal(tile_footprint)
-        
+
         query = sql.SQL("""
                             SELECT
                             {table_pc}.{field_pc_unit}
@@ -250,22 +251,20 @@ def find_pc_tiles(db, table_index_pc, fields_index_pc,
                                     tile=tile_q,
                                     field_pc_geom=field_pc_geom_q,
                                     field_ftpr_geom=field_ftpr_geom_q)
-                        
+
         resultset = db.getQuery(query)
         tiles = [tile[0] for tile in resultset]
-    
-    return(tiles)
-    
 
+    return(tiles)
 
 
 def extent_to_ewkb(db, table_index, file):
     """Reads a polygon from a file and returns its EWKB.
-    
-    I didn't find a simple way to safely get SRIDs from the input geometry 
-    with Shapely, therefore it is obtained from the database and the CRS of the 
+
+    I didn't find a simple way to safely get SRIDs from the input geometry
+    with Shapely, therefore it is obtained from the database and the CRS of the
     polygon is assumed to be the same as of the tile indexes.
-    
+
     Parameters
     ----------
     db : db Class instance
@@ -274,19 +273,19 @@ def extent_to_ewkb(db, table_index, file):
     file : str
         Path to the polygon for clipping the input.
         Must be in the same CRS as the table_index.
-        
+
     Returns
     -------
     [Shapely polygon, EWKB str]
     """
     schema = sql.Identifier(table_index['schema'])
     table = sql.Identifier(table_index['table'])
-    
+
     query = sql.SQL("""SELECT st_srid(geom) AS srid
                     FROM {schema}.{table}
                     LIMIT 1;""").format(schema=schema, table=table)
     srid = db.getQuery(query)[0][0]
-    
+
     assert srid is not None
 
     # Get clip polygon and set SRID
@@ -297,9 +296,8 @@ def extent_to_ewkb(db, table_index, file):
         # set SRID for polygon
         geos.lgeos.GEOSSetSRID(poly._geom, srid)
         ewkb = poly.wkb_hex
-    
-    return([poly, ewkb])
 
+    return([poly, ewkb])
 
 
 def get_2Dtiles(db, table_index, fields_index, ewkb):
@@ -328,7 +326,7 @@ def get_2Dtiles(db, table_index, fields_index, ewkb):
     table = sql.Identifier(table_index['table'])
     field_idx_geom_q = sql.Identifier(fields_index['geometry'])
     field_idx_unit_q = sql.Identifier(fields_index['unit_name'])
-    
+
     ewkb_q = sql.Literal(ewkb)
     # TODO: user input for a.unit
     query = sql.SQL("""
@@ -348,10 +346,9 @@ def get_2Dtiles(db, table_index, fields_index, ewkb):
     return(tiles)
 
 
-
 def get_2Dtile_area(db, table_index):
     """Get the area of a 2D tile.
-    
+
     Note
     ----
     Assumes that all tiles have equal area. Area is in units of the tile CRS.
@@ -378,7 +375,6 @@ def get_2Dtile_area(db, table_index):
     area = db.getQuery(query)[0][0]
 
     return(area)
-
 
 
 def get_2Dtile_views(db, schema_tiles, tiles):
@@ -436,7 +432,7 @@ def clip_2Dtiles(db, user_schema, schema_tiles, tiles, poly, clip_prefix,
     user_schema = sql.Identifier(user_schema)
     schema_tiles = sql.Identifier(schema_tiles)
     tiles_clipped = []
-    
+
     fields_all = fields_view['all']
     field_geom_q = sql.Identifier(fields_view['geometry'])
 
@@ -455,19 +451,23 @@ def clip_2Dtiles(db, user_schema, schema_tiles, tiles, poly, clip_prefix,
                     {schema_tiles}.{tile_view}
                 WHERE
                     st_within({tile_view}.{geom}, {wkb}::geometry)"""
-                    ).format(user_schema=user_schema,
-                             schema_tiles=schema_tiles,
-                             view=view,
-                             fields=fields_q,
-                             tile_view=tile_view,
-                             geom=field_geom_q,
-                             wkb=wkb)
+                        ).format(user_schema=user_schema,
+                                 schema_tiles=schema_tiles,
+                                 view=view,
+                                 fields=fields_q,
+                                 tile_view=tile_view,
+                                 geom=field_geom_q,
+                                 wkb=wkb)
         db.sendQuery(query)
     try:
         db.conn.commit()
-        print(str(len(tiles_clipped)) +
-              " views with prefix '{}' are created in schema {}.".format(clip_prefix, user_schema))
-    except:
+        print(
+            str(
+                len(tiles_clipped)) +
+            " views with prefix '{}' are created in schema {}.".format(
+                clip_prefix,
+                user_schema))
+    except BaseException:
         print("Cannot create view {user_schema}.{clip_prefix}{tile}".format(
             schema_tiles=schema_tiles, clip_prefix=clip_prefix))
         db.conn.rollback()
@@ -499,7 +499,7 @@ def union_2Dtiles(db, user_schema, tiles_clipped, clip_prefix, fields_view):
     union_view = sql.Identifier(u)
     sql_query = sql.SQL("CREATE OR REPLACE VIEW {user_schema}.{view} AS ").format(
         user_schema=user_schema, view=union_view)
-    
+
     fields_all = fields_view['all']
 
     for tile in tiles_clipped[:-1]:
@@ -524,11 +524,11 @@ def union_2Dtiles(db, user_schema, tiles_clipped, clip_prefix, fields_view):
     sql_query = sql_query + sql_subquery
 
     db.sendQuery(sql_query)
-    
+
     try:
         db.conn.commit()
         print("View {} created in schema {}.".format(u, user_schema))
-    except:
+    except BaseException:
         print("Cannot create view {}.{}".format(user_schema, u))
         db.conn.rollback()
         return(False)
@@ -538,20 +538,20 @@ def union_2Dtiles(db, user_schema, tiles_clipped, clip_prefix, fields_view):
 
 def get_view_fields(db, user_schema, tile_views):
     """Get the fields in a 2D tile view
-    
+
     Parameters
     ----------
     tile_views : list of str
-    
+
     Returns
     -------
     {'all' : list, 'geometry' : str}
-    
+
     """
     if len(tile_views) > 0:
         schema_q = sql.Literal(user_schema)
         view_q = sql.Literal(tile_views[0])
-        
+
         resultset = db.getQuery(sql.SQL("""
                             SELECT
                                 column_name
@@ -563,7 +563,7 @@ def get_view_fields(db, user_schema, tile_views):
                             """).format(schema=schema_q,
                                         view=view_q))
         f = [field[0] for field in resultset]
-        
+
         geom_res = db.getQuery(sql.SQL("""
                             SELECT
                                 f_geometry_column
@@ -575,41 +575,40 @@ def get_view_fields(db, user_schema, tile_views):
                             """).format(schema=schema_q,
                                         view=view_q))
         f_geom = geom_res[0][0]
-        
+
         fields = {}
         fields['all'] = f
         fields['geometry'] = f_geom
-        
+
         return(fields)
-    
+
     else:
         return(None)
-    
 
 
 def parse_sql_select_fields(table, fields):
     """Parses a list of field names into "table"."field" to insert into a SELECT ... FROM table
-    
+
     Parameters
     ----------
     fields : list of str
-    
+
     Returns
     -------
     psycopg2.sql.Composable
-    
+
     """
     s = []
     for f in fields:
         s.append(sql.SQL('.').join([sql.Identifier(table), sql.Identifier(f)]))
     sql_fields = sql.SQL(', ').join(s)
-    
+
     return(sql_fields)
 
 
 def drop_2Dtiles(db, user_schema, views_to_drop):
     """Drops Views in a given schema.
-    
+
     Note
     ----
     Used for dropping the views created by clip_2Dtiles() and union_2Dtiles().
@@ -626,21 +625,19 @@ def drop_2Dtiles(db, user_schema, views_to_drop):
 
     """
     user_schema = sql.Identifier(user_schema)
-    
+
     for view in views_to_drop:
         view = sql.Identifier(view)
-        query = sql.SQL("DROP VIEW IF EXISTS {user_schema}.{view} CASCADE;").format(user_schema=user_schema, view=view)
+        query = sql.SQL("DROP VIEW IF EXISTS {user_schema}.{view} CASCADE;").format(
+            user_schema=user_schema, view=view)
         db.sendQuery(query)
     try:
         db.conn.commit()
         print("Dropped {} in schema {}.".format(views_to_drop, user_schema))
         # sql.Identifier("tile_index").as_string(dbs.conn)
-    except:
+    except BaseException:
         print("Cannot drop views ", views_to_drop)
         db.conn.rollback()
         return(False)
 
     return(True)
-
-    
-    
