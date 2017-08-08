@@ -10,8 +10,8 @@ from psycopg2 import sql
 
 def update_tile_index(db, table_index, fields_index):
     """Update the tile index to include the lower/left boundary of each polygon.
-    
-    The function is mainly relevant for the tile index of the footprints. 
+
+    The function is mainly relevant for the tile index of the footprints.
     The tile edges are then used for checking centroid containment in a tile polygon.
 
     Parameters
@@ -31,15 +31,15 @@ def update_tile_index(db, table_index, fields_index):
     table = table_index[1]
     id_col = fields_index[0]
     geom_col = fields_index[1]
-    
+
     schema_q = sql.Identifier(schema)
     table_q = sql.Identifier(table)
     geom_col_q = sql.Identifier(geom_col)
     id_col_q = sql.Identifier(id_col)
-    
+
     db.sendQuery(sql.SQL("""ALTER TABLE {}.{}
              ADD COLUMN geom_border geometry;""").format(schema_q, table_q))
-    
+
     db.sendQuery(
         sql.SQL("""
                 UPDATE
@@ -76,8 +76,8 @@ def update_tile_index(db, table_index, fields_index):
                             table=table_q,
                             geom_col=geom_col_q,
                             id_col=id_col_q)
-                 )
-    
+    )
+
     sql_query = sql.SQL("""
             CREATE INDEX {idx_name} ON {schema}.{table} USING gist (geom_border);
             SELECT populate_geometry_columns({name}::regclass);
@@ -86,13 +86,13 @@ def update_tile_index(db, table_index, fields_index):
                         table=table_q,
                         name=sql.Literal(schema + '.' + table))
     db.sendQuery(sql_query)
-    
+
     db.vacuum(schema, table)
 
 
 def create_centroids(db, table_centroid, table_footprint, fields_footprint):
     """Creates a table of footprint centroids.
-    
+
     The table_centroid is then used by bagtiler().
 
     Parameters
@@ -116,21 +116,21 @@ def create_centroids(db, table_centroid, table_footprint, fields_footprint):
     table_poly = table_footprint[1]
     id_col = fields_footprint[0]
     geom_col = fields_footprint[1]
-    
+
     schema_ctr_q = sql.Identifier(schema_ctr)
     table_ctr_q = sql.Identifier(table_ctr)
     schema_poly_q = sql.Identifier(schema_poly)
     table_poly_q = sql.Identifier(table_poly)
     geom_col_q = sql.Identifier(geom_col)
     id_col_q = sql.Identifier(id_col)
-    
+
     sql_query = sql.SQL("""
         CREATE TABLE {schema_ctr}.{table_ctr} AS
             SELECT {id_col}, st_centroid({geom_col})::geometry(point, 28992) AS geom
             FROM {schema_poly}.{table_poly};
-        
+
         SELECT populate_geometry_columns({sch_tbl}::regclass);
-        
+
         CREATE
             INDEX {tbl_idx} ON
             {schema_ctr}.{table_ctr}
@@ -144,21 +144,21 @@ def create_centroids(db, table_centroid, table_footprint, fields_footprint):
                     sch_tbl=sql.Literal(schema_ctr + '.' + table_ctr),
                     tbl_idx=sql.Identifier(table_ctr + '_geom_idx')
                     )
-        
+
     db.sendQuery(sql_query)
-    
+
     db.vacuum(schema_ctr, table_ctr)
 
 
 def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
-             fields_centroid, table_footprint, fields_footprint,
-             prefix_tiles='t_'):
+                 fields_centroid, table_footprint, fields_footprint,
+                 prefix_tiles='t_'):
     """Creates PostgreSQL Views for the footprint tiles.
-    
+
     Parameters
     ----------
     db : db Class instance
-    schema_tiles : str 
+    schema_tiles : str
         Name of the schema where to create the footprint tiles.
     table_index : list of str
         [schema, table] of the tile index.
@@ -180,10 +180,10 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
     fields_footprint : list of str
         [ID, geometry, ...]
         Names of the fields that should be selected into the View. Must contain
-        at least an ID and a geometry field, where ID is the field that can be joined on 
+        at least an ID and a geometry field, where ID is the field that can be joined on
         table_centroid.
     prefix_tiles : str or None
-        Prefix to prepend to the view names. If None, the views are named as 
+        Prefix to prepend to the view names. If None, the views are named as
         the values in fields_index.
 
     Returns
@@ -192,7 +192,7 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
 
     """
     schema_tiles_q = sql.Identifier(schema_tiles)
-    
+
     schema_idx_q = sql.Identifier(table_index[0])
     table_idx_q = sql.Identifier(table_index[1])
     field_idx_unit_q = sql.Identifier(fields_index[2])
@@ -203,36 +203,37 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
     field_ctr_id = fields_centroid[0]
     field_ctr_id_q = sql.Identifier(field_ctr_id)
     field_ctr_geom_q = sql.Identifier(fields_centroid[1])
-    
+
     table_poly = table_footprint[1]
     schema_poly_q = sql.Identifier(table_footprint[0])
     table_poly_q = sql.Identifier(table_poly)
-    
+
     assert isinstance(fields_footprint, list)
     assert len(fields_footprint) > 1,\
-     "You must provide at least two fields (e.g. id, geometry)"
+        "You must provide at least two fields (e.g. id, geometry)"
     assert field_ctr_id in fields_footprint,\
-     "There must be a join field for table_centroid and table_footprint."
+        "There must be a join field for table_centroid and table_footprint."
     # prepare SELECT FROM table_footprint
     s = []
     for f in fields_footprint:
-        s.append(sql.SQL('.').join([sql.Identifier(table_poly), sql.Identifier(f)]))
+        s.append(sql.SQL('.').join(
+            [sql.Identifier(table_poly), sql.Identifier(f)]))
     sql_fields_footprint = sql.SQL(', ').join(s)
-    
+
     field_poly_id_q = sql.Identifier(fields_footprint[0])
 #     print(sql_fields_footprint.as_string(dbs.conn))
-    
+
     # Create schema to store the tiles
     query = sql.SQL("CREATE SCHEMA IF NOT EXISTS {};").format(schema_tiles_q)
     db.sendQuery(query)
-        
+
     # Get footprint index unit names
     tiles = db.getQuery(
         sql.SQL("SELECT {} FROM {}.{};").format(field_idx_unit_q, schema_idx_q,
                                                 table_idx_q)
-                        )
+    )
     tiles = [str(i[0]) for i in tiles]
-    
+
     if not prefix_tiles:
         prefix_tiles = ""
     assert isinstance(prefix_tiles, str)
@@ -241,7 +242,7 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
         # !!! the 't_' prefix is hard-coded in config.call3dfier() !!!
         n = prefix_tiles + str(tile)
         view = sql.Identifier(n)
-        
+
         tile = sql.Literal(tile)
         query = sql.SQL("""CREATE OR REPLACE VIEW {schema_tiles}.{view} AS
                         SELECT
@@ -279,18 +280,17 @@ def create_views(db, schema_tiles, table_index, fields_index, table_centroid,
                                       field_ctr_geom=field_ctr_geom_q
                                       )
         db.sendQuery(query)
-    
+
     return("%s Views created in schema '%s'." % (len(tiles), schema_tiles))
-        
+
 #     except:
 #         return("Cannot create Views in schema '%s'" % schema_tiles)
-
 
 
 def partition(db, schema_tiles, table_index, fields_index, table_footprint,
               fields_footprint, prefix_tiles):
     """Partitions geometries in a 2D footprint table into tiles.
-    
+
     Adds a geometry column to table_index.
     Creates a new table <table_footprint>_centroid in the schema of table_footprint.
     Creates a View for each tile in table_index, generating names from fields_index[2].
@@ -298,7 +298,7 @@ def partition(db, schema_tiles, table_index, fields_index, table_footprint,
     Parameters
     ----------
     db : db Class instance
-    schema_tiles : str 
+    schema_tiles : str
         Name of the schema where to create the tiles.
     table_index : list of str
         [schema, table] of the tile index.
@@ -313,10 +313,10 @@ def partition(db, schema_tiles, table_index, fields_index, table_footprint,
     fields_footprint : list of str
         [ID, geometry, ...]
         Names of the fields that should be selected into the View. Must contain
-        at least an ID and a geometry field, where ID is the field that can be joined on 
+        at least an ID and a geometry field, where ID is the field that can be joined on
         table_centroid.
     prefix_tiles : str, None
-        Prefix to prepend to the view names. If None, the views are named as 
+        Prefix to prepend to the view names. If None, the views are named as
         the values in fields_index[2].
 
     Returns
@@ -324,16 +324,15 @@ def partition(db, schema_tiles, table_index, fields_index, table_footprint,
     nothing
 
     """
-    
+
     tbl_ctr = table_footprint[1] + "_centroid"
     table_centroid = [table_footprint[0], tbl_ctr]
     fields_centroid = [fields_footprint[0], 'geom']
-    
+
     update_tile_index(db, table_index, fields_index)
-    
+
     create_centroids(db, table_centroid, table_footprint, fields_footprint)
-    
+
     create_views(db, schema_tiles, table_index, fields_index, table_centroid,
                  fields_centroid, table_footprint, fields_footprint,
                  prefix_tiles)
-    
