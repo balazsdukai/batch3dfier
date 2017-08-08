@@ -1,18 +1,22 @@
+# set up python and packages
 language: python
 python:
+  - "3.4"
   - "3.5"
-install: "pip install -r requirements.txt"
-script: pytest
+  - "3.6"
+install: pip install tox-travis codecov
+script: tox
 
 branches:
   only:
+    - development
     - release/*
     - master
 
-sudo: enabled
-
+sudo: false
 dist: trusty
 
+# set up postgres
 services:
   - postgresql
 addons:
@@ -21,8 +25,13 @@ addons:
     packages:
       - postgresql-9.5-postgis-2.3
 
+# create a test database
 before_script:
   - psql -U postgres -c "create role batch3dfier with login password 'batch3d_test'"
   - createdb -O batch3dfier batch3dfier_db
   - psql -d batch3dfier_db -c "create extension postgis"
-  - psql -d batch3dfier_db -f ./example_data/batch3dfier_db.sql 
+  - psql -d batch3dfier_db -f ./example_data/batch3dfier_db.sql
+
+# report test coverage
+after_success:
+  - codecov

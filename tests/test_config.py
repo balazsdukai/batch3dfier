@@ -3,17 +3,19 @@ import os.path
 import pytest
 import yaml
 
-from batch3dfier import db
-from batch3dfier import config
+from .context import db
+from .context import config
+
 
 @pytest.fixture("module")
 def batch3dfier_db(request):
     dbs = db.db(dbname='batch3dfier_db', host='localhost', port='5432',
-                user= 'batch3dfier', password='batch3d_test')
+                user='batch3dfier', password='batch3d_test')
+
     def disconnect():
         dbs.close()
     request.addfinalizer(disconnect)
-    
+
     return(dbs)
 
 
@@ -28,15 +30,15 @@ def polygons():
 @pytest.fixture("module")
 def cfg():
     c = {'tile_index': {'elevation': {'fields': {'geometry': 'geom',
-                                                   'primary_key': 'gid',
-                                                   'unit_name': 'unit'},
-                                        'schema': 'tile_index',
-                                        'table': 'ahn_index'},
-                          'polygons': {'fields': {'geometry': 'geom',
-                                                  'primary_key': 'gid',
-                                                  'unit_name': 'unit'},
-                                       'schema': 'tile_index',
-                                       'table': 'bag_index'}}}
+                                                 'primary_key': 'gid',
+                                                 'unit_name': 'unit'},
+                                      'schema': 'tile_index',
+                                      'table': 'ahn_index'},
+                        'polygons': {'fields': {'geometry': 'geom',
+                                                'primary_key': 'gid',
+                                                'unit_name': 'unit'},
+                                     'schema': 'tile_index',
+                                     'table': 'bag_index'}}}
     return(c)
 
 
@@ -57,7 +59,6 @@ def tile():
     return('25gn1_c1')
 
 
-
 def test_polygon_to_ewkb(batch3dfier_db, cfg, polygons):
     poly, ewkb = config.extent_to_ewkb(batch3dfier_db,
                                        cfg['tile_index']['polygons'],
@@ -75,30 +76,31 @@ def test_get_2Dtiles(batch3dfier_db, cfg, polygons):
 
 
 def test_find_pc_tiles_extent(batch3dfier_db, cfg, polygons):
-    tiles = config.find_pc_tiles(batch3dfier_db,
-                                 table_index_pc=cfg['tile_index']['elevation'],
-                                 fields_index_pc=cfg['tile_index']['elevation']['fields'],
-                                 extent_ewkb=polygons['ewkb'])
+    tiles = config.find_pc_tiles(
+        batch3dfier_db,
+        table_index_pc=cfg['tile_index']['elevation'],
+        fields_index_pc=cfg['tile_index']['elevation']['fields'],
+        extent_ewkb=polygons['ewkb'])
     assert tiles == ['25gn1_a', '25gn1_b']
-    
 
 
 def test_find_pc_tiles_tile(batch3dfier_db, cfg, tile):
-    tiles = config.find_pc_tiles(batch3dfier_db,
-                                 table_index_pc=cfg['tile_index']['elevation'],
-                                 fields_index_pc=cfg['tile_index']['elevation']['fields'],
-                                 table_index_footprint=cfg['tile_index']['polygons'],
-                                 fields_index_footprint=cfg['tile_index']['polygons']['fields'],
-                                 tile_footprint=tile)
+    tiles = config.find_pc_tiles(
+        batch3dfier_db,
+        table_index_pc=cfg['tile_index']['elevation'],
+        fields_index_pc=cfg['tile_index']['elevation']['fields'],
+        table_index_footprint=cfg['tile_index']['polygons'],
+        fields_index_footprint=cfg['tile_index']['polygons']['fields'],
+        tile_footprint=tile)
     assert tiles == ['25gn1_a', '25gn1_b']
 
 
-def test_find_pc_files(pointcloud): 
+def test_find_pc_files(pointcloud):
     pc_path = config.find_pc_files(pointcloud['pc_tiles'],
                                    pointcloud['dataset_dir'],
                                    pointcloud['dataset_name'],
                                    pointcloud['tile_case'])
-    
+
     assert pc_path == pointcloud['pc_path']
 
 
@@ -107,33 +109,42 @@ def test_find_pc_files_none(pointcloud):
                                    pointcloud['dataset_dir'],
                                    pointcloud['dataset_name'],
                                    "upper")
-    
-    assert pc_path == None
-    
-    
+
+    assert pc_path is None
+
 
 def test_yamlr(batch3dfier_db, pointcloud, tile):
     schema_tiles = 'bag_tiles'
     output_format = 'CSV-BUILDINGS-MULTIPLE'
     uniqueid = 'identificatie'
-    
-    y_test = {'input_elevation': [{'datasets': [os.path.abspath('example_data/c_25gn1_a.laz'),
-                                                os.path.abspath('example_data/c_25gn1_b.laz')],
-                                   'omit_LAS_classes': [1],
-                                   'thinning': 0}],
-              'input_polygons': [{'datasets': ['PG:dbname=batch3dfier_db host=localhost user=batch3dfier password=batch3d_test schemas=bag_tiles tables=25gn1_c1'],
-                                  'lifting': 'Building',
-                                  'uniqueid': 'identificatie'}],
-              'lifting_options': {'Building': {'height_floor': 'percentile-10',
-                                               'height_roof': 'percentile-90',
-                                               'lod': 1}},
-              'options': {'building_radius_vertex_elevation': 2.0,
-                          'radius_vertex_elevation': 1.0,
-                          'threshold_jump_edges': 0.5},
-              'output': {'building_floor': True,
-                         'format': 'CSV-BUILDINGS-MULTIPLE',
-                         'vertical_exaggeration': 0}}
-    
+
+    y_test = {
+        'input_elevation': [
+            {
+                'datasets': [
+                    os.path.abspath('example_data/c_25gn1_a.laz'),
+                    os.path.abspath('example_data/c_25gn1_b.laz')],
+                'omit_LAS_classes': [1],
+                'thinning': 0}],
+        'input_polygons': [
+            {
+                'datasets': ['PG:dbname=batch3dfier_db host=localhost user=batch3dfier password=batch3d_test schemas=bag_tiles tables=25gn1_c1'],
+                'lifting': 'Building',
+                'uniqueid': 'identificatie'}],
+        'lifting_options': {
+            'Building': {
+                'height_floor': 'percentile-10',
+                                'height_roof': 'percentile-90',
+                                'lod': 1}},
+        'options': {
+            'building_radius_vertex_elevation': 2.0,
+            'radius_vertex_elevation': 1.0,
+            'threshold_jump_edges': 0.5},
+        'output': {
+            'building_floor': True,
+            'format': 'CSV-BUILDINGS-MULTIPLE',
+            'vertical_exaggeration': 0}}
+
     y = config.yamlr(dbname=batch3dfier_db.dbname,
                      host=batch3dfier_db.host,
                      user=batch3dfier_db.user,
@@ -143,9 +154,9 @@ def test_yamlr(batch3dfier_db, pointcloud, tile):
                      pc_path=pointcloud['pc_path'],
                      output_format=output_format,
                      uniqueid=uniqueid)
-    
+
     y_parsed = yaml.load(y)
-    
+
     assert y_parsed == y_test
 
 
@@ -155,8 +166,9 @@ def test_get_view_fields(batch3dfier_db):
     fields = config.get_view_fields(batch3dfier_db, user_schema, tile_views)
     fields_test = {'all': ['gid', 'geom', 'identification'],
                    'geometry': 'geom'}
-    
+
     assert fields == fields_test
+
 
 def test_parse_sql_select_fields(batch3dfier_db):
     table = 't_25gn1_c1'
@@ -166,4 +178,3 @@ def test_parse_sql_select_fields(batch3dfier_db):
     sql_str = sql.as_string(batch3dfier_db.conn)
 
     assert sql_str == sql_test
-    
