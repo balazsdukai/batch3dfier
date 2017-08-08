@@ -4,7 +4,7 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
-install: pip install tox-travis coveralls
+install: pip install tox-travis codecov
 script: tox
 
 branches:
@@ -34,4 +34,4 @@ before_script:
 
 # report test coverage
 after_success:
-  - coveralls
+  - codecov
