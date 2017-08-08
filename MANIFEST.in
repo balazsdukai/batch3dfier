@@ -1,0 +1,12 @@
+# Documentation
+include README.rst
+include CHANGELOG.md
+include LICENSE.txt
+recursive-include doc *
+
+# Support files
+include db_setup.sh
+include batch3dfier_config*
+
+# Example data sets
+recursive-include example_data *
