@@ -2,5 +2,10 @@
 branch = True
 concurrency = thread
 
+[report]
+ignore_errors = True
+omit =
+    tests/*
+
 [html]
 directory = coverage_html
