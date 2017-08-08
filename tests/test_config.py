@@ -3,8 +3,8 @@ import os.path
 import pytest
 import yaml
 
-from batch3dfier import db
-from batch3dfier import config
+from .context import db
+from .context import config
 
 @pytest.fixture("module")
 def batch3dfier_db(request):

@@ -20,7 +20,7 @@ A *tile index* is data set of polygons that tessellates the footprints or the po
 
 For an example, see the image below or ``/example_data/ahn_index.geojson``, ``/example_data/bag_index.geojson``.
 
-.. image:: https://github.com/balazsdukai/batch3dfier/blob/master/doc/tile_index.png
+.. image:: https://github.com/balazsdukai/batch3dfier/blob/master/docs/tile_index.png
    :align: center
 
 In *batch3dfier* the term *tile* refers to a data subset (footprints or pointcloud), that falls within the limits of a *tile index unit*. A footprint belongs to a tile, if its centroid is in the interior of a tile index unit or on the left/lower edge of a tile index unit. Therefore a footprint cannot belong to two tiles at the same time, thus there won't be overlaps between two neighbouring tiles.
@@ -48,8 +48,8 @@ Let's take the example of a tiny subset of the BAG data set. In this case the tw
         $ psql -d postgres -c "create role batch3dfier with login password 'batch3d_test';"
         $ createdb -O batch3dfier batch3dfier_test 
         $ psql -d batch3dfier_test -c "create extension postgis;\
-                                     create schema tile_index authorization batch3dfier;\
-                                     create schema bag authorization batch3dfier;"
+                                       create schema tile_index authorization batch3dfier;\
+                                       create schema bag authorization batch3dfier;"
         
         $ ogr2ogr -f PostgreSQL PG:"dbname=batch3dfier_test\
          host=localhost port=5432 user=batch3dfier password=batch3d_test"\
@@ -107,6 +107,16 @@ This will create a database view for each footprint tile in ``bag_index``, such 
 Where the name of the view is ``prefix_tiles`` + the value in field ``unit``. ``prefix_tiles`` can be ``None``.
 
 Then *batch3dfier* will use (the content of) these views as input. 
+
+For testing you can use the sql-dump ``/example_data/batch3dfier_db.sql`` to quickly set up a database with data in it. If you are a *PostgreSQL* superuser, these commands should work for you:
+
+.. code-block:: sh
+
+        $ cd batch3dfier
+        $ psql -U postgres -c "create role batch3dfier with login password 'batch3d_test'"
+        $ createdb -O batch3dfier batch3dfier_db
+        $ psql -d batch3dfier_db -c "create extension postgis"
+        $ psql -d batch3dfier_db -f ./example_data/batch3dfier_db.sql 
 
 Using batch3dfier
 =================
@@ -241,6 +251,12 @@ Run
 -   In order to process several tiles efficiently *batch3dfier* starts 3 concurrent threads by default, each of them processing a single tile at a time. Set the number of threads:
 
     ``batch3dfy -t 4 batch3dfier_config.yml``
+    
+-   Run the tests:
+
+    ``$ pytest batch3dfier/tests``
+    
+Example data sets are in ``batch3dfier/example_data``.
     
 When *batch3dfier* is finished, it will report you the number of tiles it processed and skipped. Currently this reporting is very rudimentary and it mainly measures whether the tiles and their corresponding pointcloud files are found in the *tile_schema* and *data set_dir*. A tile is *skipped* when the corresponding pointcloud file is not found in *data set_dir*. Failures of *3dfier* are not reported here, thus it is possible to get all tiles processed, but *3dfier* failing completely. Such a scenario might occur when *batch3dfier* can connect to the database but *3dfier* cannot.
 
