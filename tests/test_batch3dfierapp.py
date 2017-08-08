@@ -1,9 +1,9 @@
-from batch3dfier.batch3dfierapp import parse_config_yaml
+from .context import batch3dfierapp
 
 def test_parse_config_yaml_1():
     args_in = {}
     args_in['cfg_file'] = "batch3dfier_config.yml"
-    cfg = parse_config_yaml(args_in)
+    cfg = batch3dfierapp.parse_config_yaml(args_in)
     cfg.pop('dbase')
     assert cfg == {'elevation': {'fields': {'geometry': 'geom',
                                             'primary_key': 'gid',

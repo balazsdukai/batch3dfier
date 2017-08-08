@@ -1,7 +1,7 @@
 import pytest
 
-from batch3dfier import db
-from batch3dfier import footprints
+from .context import db
+from .context import footprints
 
 @pytest.fixture("module")
 def batch3dfier_db(request):
