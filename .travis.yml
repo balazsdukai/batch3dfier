@@ -10,7 +10,7 @@ script: tox
 branches:
   only:
     - develop
-    - release/*
+    - /release.*/
     - master
 
 sudo: false
