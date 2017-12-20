@@ -62,6 +62,30 @@ def parse_config_yaml(args_in):
             "\n No file format is appended to output. Currently only .obj or .csv is handled.\n")
     cfg['output_format'] = OUTPUT_FORMAT
     cfg['output_dir'] = os.path.abspath(cfg_stream["output"]["dir"])
+    if 'csv' in cfg['output_format'].lower():
+        cfg['out_schema'] = cfg_stream["output"]["schema"]
+        cfg['out_table'] = cfg_stream["output"]["table"]
+#         try:
+#             # in case user gave " " or "" for 'extent'
+#             if len(cfg_stream["output"]["table"]) > 1:
+#                 EXTENT_FILE = None
+#             cfg['extent_file'] = os.path.abspath(
+#                 cfg_stream["input_polygons"]["extent"])
+#             cfg['tiles'] = None
+#         except (NameError, AttributeError, TypeError):
+#             tile_list = cfg_stream["input_polygons"]["tile_list"]
+#             assert isinstance(
+#                 tile_list, list), "Please provide input for tile_list as a list: [...]"
+#             cfg['tiles'] = tile_list
+#             cfg['extent_file'] = None
+    else:
+        # OBJ is not imported into postgres
+        cfg['out_schema'] = None
+        cfg['out_table'] = None
+        pass
+    
+    
+    
     cfg['path_3dfier'] = cfg_stream["path_3dfier"]
 
     try:
@@ -80,25 +104,26 @@ def parse_config_yaml(args_in):
 
     # 'user_schema' is used for the '_clip3dfy_' and '_union' views, thus
     # only use 'user_schema' if 'extent' is provided
-    cfg['tile_schema'] = cfg_stream["input_polygons"]["database"]["tile_schema"]
-    USER_SCHEMA = cfg_stream["input_polygons"]["database"]["user_schema"]
+    cfg['tile_schema'] = cfg_stream["input_polygons"]["tile_schema"]
+    USER_SCHEMA = cfg_stream["input_polygons"]["user_schema"]
     if (USER_SCHEMA is None) or (EXTENT_FILE is None):
         cfg['user_schema'] = cfg['tile_schema']
 
     # Connect to database ----------------------------------------------------
     cfg['dbase'] = db.db(
-        dbname=cfg_stream["input_polygons"]["database"]["dbname"],
+        dbname=cfg_stream["database"]["dbname"],
         host=str(
-            cfg_stream["input_polygons"]["database"]["host"]),
-        port=cfg_stream["input_polygons"]["database"]["port"],
-        user=cfg_stream["input_polygons"]["database"]["user"],
-        password=cfg_stream["input_polygons"]["database"]["pw"])
+            cfg_stream["database"]["host"]),
+        port=cfg_stream["database"]["port"],
+        user=cfg_stream["database"]["user"],
+        password=cfg_stream["database"]["pw"])
 
     cfg['uniqueid'] = cfg_stream["input_polygons"]['uniqueid']
 
-    cfg['prefix_tile_footprint'] = cfg_stream["input_polygons"]["database"]["tile_prefix"]
+    cfg['prefix_tile_footprint'] = cfg_stream["input_polygons"]["tile_prefix"]
 
     return(cfg)
+
 
 
 def main():
