@@ -105,9 +105,11 @@ def call_3dfier(db, tile, schema_tiles,
             str(pc_tiles) +
             " not available. Skipping tile.\n")
         tile_skipped = tile
-        return(tile_skipped)
+        return({'tile_skipped': tile_skipped, 
+                'out_path': None})
 
-    return(None)
+    return({'tile_skipped': None, 
+            'out_path': output_path})
 
 
 def yamlr(dbname, host, user, pw, schema_tiles,
@@ -641,3 +643,20 @@ def drop_2Dtiles(db, user_schema, views_to_drop):
         return(False)
 
     return(True)
+
+
+def csv2pg(db, schema, table, file):
+    """Copy the CSV output of 3dfier into a postgres table
+    
+    Parameters
+    ----------
+    db: db Class instance
+    schema: str
+    table: str
+    file: str
+    
+    Returns
+    -------
+    nothing
+    """
+    pass

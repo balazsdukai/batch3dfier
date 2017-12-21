@@ -65,19 +65,6 @@ def parse_config_yaml(args_in):
     if 'csv' in cfg['output_format'].lower():
         cfg['out_schema'] = cfg_stream["output"]["schema"]
         cfg['out_table'] = cfg_stream["output"]["table"]
-#         try:
-#             # in case user gave " " or "" for 'extent'
-#             if len(cfg_stream["output"]["table"]) > 1:
-#                 EXTENT_FILE = None
-#             cfg['extent_file'] = os.path.abspath(
-#                 cfg_stream["input_polygons"]["extent"])
-#             cfg['tiles'] = None
-#         except (NameError, AttributeError, TypeError):
-#             tile_list = cfg_stream["input_polygons"]["tile_list"]
-#             assert isinstance(
-#                 tile_list, list), "Please provide input for tile_list as a list: [...]"
-#             cfg['tiles'] = tile_list
-#             cfg['extent_file'] = None
     else:
         # OBJ is not imported into postgres
         cfg['out_schema'] = None
@@ -206,6 +193,7 @@ def main():
 
     exitFlag = 0
     tiles_skipped = []
+    out_paths = []
 
     class myThread (threading.Thread):
 
@@ -248,8 +236,10 @@ def main():
                     output_dir=cfg['output_dir'],
                     path_3dfier=cfg['path_3dfier'],
                     thread=threadName)
-                if t is not None:
-                    tiles_skipped.append(t)
+                if t['tile_skipped'] is not None:
+                    tiles_skipped.append(t['tile_skipped'])
+                else:
+                    out_paths.append(t['out_path'])
             else:
                 queueLock.release()
                 time.sleep(1)
@@ -315,6 +305,25 @@ def main():
     for c in yml_cfg:
         command = command + " " + c
     call(command, shell=True)
+    
+    # If requires, copy the CSV output to postgres
+    if cfg['out_table']:
+        with dbase.conn:
+            with dbase.conn.cursor() as cur:
+                tbl = ".".join([cfg['out_schema'], cfg['out_table']])
+                for p in out_paths:
+                    # remove trailing commas from the CSV (until #58 is fixed in 3dfier)
+                    command = "sed -i 's/,$//' " + p
+                    call(command, shell=True)
+                    with open(p, "r") as f_in:
+                        # skip header
+                        next(f_in)
+                        cur.copy_from(f_in, tbl, sep=',')
+                    # delete the CSV
+                    command = "rm" + p
+                    call(command, shell=True)
+    else:
+        pass
 
     # =========================================================================
     # Reporting
