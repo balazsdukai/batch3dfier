@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Import the contents of CSV-BUILDINGS-MULTIPLE into a postgres table that can be joined on the footprints
 
 ## [0.6.0] - 2017-08-08
 ### Added

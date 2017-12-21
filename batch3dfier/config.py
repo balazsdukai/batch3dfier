@@ -645,18 +645,29 @@ def drop_2Dtiles(db, user_schema, views_to_drop):
     return(True)
 
 
-def csv2pg(db, schema, table, file):
-    """Copy the CSV output of 3dfier into a postgres table
+def create_heights_table(db, schema, table):
+    """Create a postgres table that can store the content of 3dfier CSV-BUILDINGS-MULTIPLE"""
     
-    Parameters
-    ----------
-    db: db Class instance
-    schema: str
-    table: str
-    file: str
+    schema_q = sql.Identifier(schema)
+    table_q = sql.Identifier(table)
+    query = sql.SQL("""
+    CREATE TABLE IF NOT EXISTS {}.{} (
+        id text,
+        "ground-0.00" real,
+        "ground-0.10" real,
+        "ground-0.20" real,
+        "ground-0.30" real,
+        "ground-0.40" real,
+        "ground-0.50" real,
+        "roof-0.00" real,
+        "roof-0.10" real,
+        "roof-0.25" real,
+        "roof-0.50" real,
+        "roof-0.75" real,
+        "roof-0.90" real,
+        "roof-0.95" real,
+        "roof-0.99" real
+        );
+    """).format(schema=schema_q, table=table_q)
+    db.sendQuery(query)
     
-    Returns
-    -------
-    nothing
-    """
-    pass
