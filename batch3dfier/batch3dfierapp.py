@@ -71,9 +71,7 @@ def parse_config_yaml(args_in):
         cfg['out_schema'] = None
         cfg['out_table'] = None
         pass
-    
-    
-    
+
     cfg['path_3dfier'] = cfg_stream["path_3dfier"]
 
     try:
@@ -113,7 +111,6 @@ def parse_config_yaml(args_in):
     return(cfg)
 
 
-
 def main():
     # Prefix for naming the clipped/united views. This value shouldn't be a
     # substring in the pointcloud file names.
@@ -128,12 +125,11 @@ def main():
     cfg = parse_config_yaml(args_in)
     dbase = cfg['dbase']
     tiles = cfg['tiles']
-    
-    
+
     logfile = os.path.join(cfg['output_dir'], 'batch3dfier.log')
     logging.basicConfig(filename=logfile,
                         filemode='a',
-                        level=logging.INFO, 
+                        level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s')
 
     # =========================================================================
@@ -270,14 +266,14 @@ def main():
     # Fill the queue
     queueLock.acquire()
     if union_view:
-#         print("union_view is", union_view)
+        #         print("union_view is", union_view)
         workQueue.put(union_view)
     elif tiles_clipped:
-#         print("tiles_clipped is", tiles_clipped)
+        #         print("tiles_clipped is", tiles_clipped)
         for tile in tiles_clipped:
             workQueue.put(tile)
     else:
-#         print("tile_views is", tile_views)
+        #         print("tile_views is", tile_views)
         for tile in tile_views:
             workQueue.put(tile)
     queueLock.release()
@@ -313,29 +309,30 @@ def main():
     for c in yml_cfg:
         command = command + " " + c
     call(command, shell=True)
-    
+
     # If requires, copy the CSV output to postgres
     if cfg['out_table']:
-        config.create_heights_table(dbase, cfg['out_schema'], 
+        config.create_heights_table(dbase, cfg['out_schema'],
                                     cfg['out_table'])
         with dbase.conn:
             with dbase.conn.cursor() as cur:
                 tbl = ".".join([cfg['out_schema'], cfg['out_table']])
                 for p in out_paths:
-                    # remove trailing commas from the CSV (until #58 is fixed in 3dfier)
+                    # remove trailing commas from the CSV (until #58 is fixed
+                    # in 3dfier)
                     command = "sed -i 's/,$//' " + p
                     call(command, shell=True)
-                    
+
                     with open(p, "r") as f_in:
                         # skip header
                         next(f_in)
                         cur.copy_from(f_in, tbl, sep=',')
-                        
+
                     # delete the CSV
                     command = "rm" + p
                     call(command, shell=True)
         dbase.sendQuery(
-            sql.SQL("""CREATE INDEX IF NOT EXISTS {table}_id_idx 
+            sql.SQL("""CREATE INDEX IF NOT EXISTS {table}_id_idx
                             ON {schema}.{table} (id);
                         """.format(schema=cfg['out_schema'],
                                    table=cfg['out_table'])
@@ -345,7 +342,7 @@ def main():
             sql.SQL("""COMMENT ON {schema}.{table} IS
                     'Building heights generated with 3dfier.';
                     """.format(schema=cfg['out_schema'],
-                                   table=cfg['out_table'])
+                               table=cfg['out_table'])
                     )
         )
     else:
@@ -356,9 +353,9 @@ def main():
     # =========================================================================
     tiles = set(tiles)
     tiles_skipped = set(tiles_skipped)
-    logging.info("Total number of tiles processed: %s", 
+    logging.info("Total number of tiles processed: %s",
                  str(len(tiles.difference(tiles_skipped))))
-    logging.info("Total number of tiles skipped: %s", 
+    logging.info("Total number of tiles skipped: %s",
                  str(len(tiles_skipped)))
 
 

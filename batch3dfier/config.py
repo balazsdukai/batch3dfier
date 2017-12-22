@@ -105,10 +105,10 @@ def call_3dfier(db, tile, schema_tiles,
             str(pc_tiles) +
             " not available. Skipping tile.\n")
         tile_skipped = tile
-        return({'tile_skipped': tile_skipped, 
+        return({'tile_skipped': tile_skipped,
                 'out_path': None})
 
-    return({'tile_skipped': None, 
+    return({'tile_skipped': None,
             'out_path': output_path})
 
 
@@ -647,7 +647,7 @@ def drop_2Dtiles(db, user_schema, views_to_drop):
 
 def create_heights_table(db, schema, table):
     """Create a postgres table that can store the content of 3dfier CSV-BUILDINGS-MULTIPLE"""
-    
+
     schema_q = sql.Identifier(schema)
     table_q = sql.Identifier(table)
     query = sql.SQL("""
@@ -670,4 +670,3 @@ def create_heights_table(db, schema, table):
         );
     """).format(schema=schema_q, table=table_q)
     db.sendQuery(query)
-    
