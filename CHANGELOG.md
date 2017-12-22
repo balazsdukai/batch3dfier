@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.7.0] - 2017-12-22
+### Added
+- Import the contents of CSV-BUILDINGS-MULTIPLE into a postgres table that can be joined on the footprints
+- Log file (just basic info)
+- Wheel
+
+### Changed
+- `batch3dfy` console script -> `batch3dfier`
+
 ## [0.6.0] - 2017-08-08
 ### Added
 - support for python 3.4-3.6
@@ -73,6 +82,7 @@ Completely revamped `bagtiler` module
 
 
 [Unreleased]: https://github.com/balazsdukai/batch3dfier/tree/develop
+[0.7.0]: https://github.com/balazsdukai/batch3dfier/releases/tag/v0.7.0
 [0.6.0]: https://github.com/balazsdukai/batch3dfier/releases/tag/v0.6.0
 [0.5.0]: https://github.com/balazsdukai/batch3dfier/releases/tag/v0.5.0
 [0.4.0]: https://github.com/balazsdukai/batch3dfier/releases/tag/v0.4.0

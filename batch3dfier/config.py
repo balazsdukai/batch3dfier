@@ -105,9 +105,11 @@ def call_3dfier(db, tile, schema_tiles,
             str(pc_tiles) +
             " not available. Skipping tile.\n")
         tile_skipped = tile
-        return(tile_skipped)
+        return({'tile_skipped': tile_skipped, 
+                'out_path': None})
 
-    return(None)
+    return({'tile_skipped': None, 
+            'out_path': output_path})
 
 
 def yamlr(dbname, host, user, pw, schema_tiles,
@@ -641,3 +643,31 @@ def drop_2Dtiles(db, user_schema, views_to_drop):
         return(False)
 
     return(True)
+
+
+def create_heights_table(db, schema, table):
+    """Create a postgres table that can store the content of 3dfier CSV-BUILDINGS-MULTIPLE"""
+    
+    schema_q = sql.Identifier(schema)
+    table_q = sql.Identifier(table)
+    query = sql.SQL("""
+    CREATE TABLE IF NOT EXISTS {}.{} (
+        id text,
+        "ground-0.00" real,
+        "ground-0.10" real,
+        "ground-0.20" real,
+        "ground-0.30" real,
+        "ground-0.40" real,
+        "ground-0.50" real,
+        "roof-0.00" real,
+        "roof-0.10" real,
+        "roof-0.25" real,
+        "roof-0.50" real,
+        "roof-0.75" real,
+        "roof-0.90" real,
+        "roof-0.95" real,
+        "roof-0.99" real
+        );
+    """).format(schema=schema_q, table=table_q)
+    db.sendQuery(query)
+    

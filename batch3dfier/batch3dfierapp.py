@@ -11,6 +11,7 @@ import time
 import warnings
 import argparse
 from subprocess import call
+import logging
 
 import yaml
 from psycopg2 import sql
@@ -62,6 +63,17 @@ def parse_config_yaml(args_in):
             "\n No file format is appended to output. Currently only .obj or .csv is handled.\n")
     cfg['output_format'] = OUTPUT_FORMAT
     cfg['output_dir'] = os.path.abspath(cfg_stream["output"]["dir"])
+    if 'CSV-BUILDINGS-MULTIPLE' == cfg['output_format']:
+        cfg['out_schema'] = cfg_stream["output"]["schema"]
+        cfg['out_table'] = cfg_stream["output"]["table"]
+    else:
+        # OBJ is not imported into postgres
+        cfg['out_schema'] = None
+        cfg['out_table'] = None
+        pass
+    
+    
+    
     cfg['path_3dfier'] = cfg_stream["path_3dfier"]
 
     try:
@@ -80,25 +92,26 @@ def parse_config_yaml(args_in):
 
     # 'user_schema' is used for the '_clip3dfy_' and '_union' views, thus
     # only use 'user_schema' if 'extent' is provided
-    cfg['tile_schema'] = cfg_stream["input_polygons"]["database"]["tile_schema"]
-    USER_SCHEMA = cfg_stream["input_polygons"]["database"]["user_schema"]
+    cfg['tile_schema'] = cfg_stream["input_polygons"]["tile_schema"]
+    USER_SCHEMA = cfg_stream["input_polygons"]["user_schema"]
     if (USER_SCHEMA is None) or (EXTENT_FILE is None):
         cfg['user_schema'] = cfg['tile_schema']
 
     # Connect to database ----------------------------------------------------
     cfg['dbase'] = db.db(
-        dbname=cfg_stream["input_polygons"]["database"]["dbname"],
+        dbname=cfg_stream["database"]["dbname"],
         host=str(
-            cfg_stream["input_polygons"]["database"]["host"]),
-        port=cfg_stream["input_polygons"]["database"]["port"],
-        user=cfg_stream["input_polygons"]["database"]["user"],
-        password=cfg_stream["input_polygons"]["database"]["pw"])
+            cfg_stream["database"]["host"]),
+        port=cfg_stream["database"]["port"],
+        user=cfg_stream["database"]["user"],
+        password=cfg_stream["database"]["pw"])
 
     cfg['uniqueid'] = cfg_stream["input_polygons"]['uniqueid']
 
-    cfg['prefix_tile_footprint'] = cfg_stream["input_polygons"]["database"]["tile_prefix"]
+    cfg['prefix_tile_footprint'] = cfg_stream["input_polygons"]["tile_prefix"]
 
     return(cfg)
+
 
 
 def main():
@@ -115,6 +128,13 @@ def main():
     cfg = parse_config_yaml(args_in)
     dbase = cfg['dbase']
     tiles = cfg['tiles']
+    
+    
+    logfile = os.path.join(cfg['output_dir'], 'batch3dfier.log')
+    logging.basicConfig(filename=logfile,
+                        filemode='a',
+                        level=logging.INFO, 
+                        format='%(asctime)s - %(levelname)s - %(message)s')
 
     # =========================================================================
     # Get tile list if 'extent' provided
@@ -181,6 +201,7 @@ def main():
 
     exitFlag = 0
     tiles_skipped = []
+    out_paths = []
 
     class myThread (threading.Thread):
 
@@ -223,8 +244,10 @@ def main():
                     output_dir=cfg['output_dir'],
                     path_3dfier=cfg['path_3dfier'],
                     thread=threadName)
-                if t is not None:
-                    tiles_skipped.append(t)
+                if t['tile_skipped'] is not None:
+                    tiles_skipped.append(t['tile_skipped'])
+                else:
+                    out_paths.append(t['out_path'])
             else:
                 queueLock.release()
                 time.sleep(1)
@@ -247,14 +270,14 @@ def main():
     # Fill the queue
     queueLock.acquire()
     if union_view:
-        print("union_view is", union_view)
+#         print("union_view is", union_view)
         workQueue.put(union_view)
     elif tiles_clipped:
-        print("tiles_clipped is", tiles_clipped)
+#         print("tiles_clipped is", tiles_clipped)
         for tile in tiles_clipped:
             workQueue.put(tile)
     else:
-        print("tile_views is", tile_views)
+#         print("tile_views is", tile_views)
         for tile in tile_views:
             workQueue.put(tile)
     queueLock.release()
@@ -290,16 +313,53 @@ def main():
     for c in yml_cfg:
         command = command + " " + c
     call(command, shell=True)
+    
+    # If requires, copy the CSV output to postgres
+    if cfg['out_table']:
+        config.create_heights_table(dbase, cfg['out_schema'], 
+                                    cfg['out_table'])
+        with dbase.conn:
+            with dbase.conn.cursor() as cur:
+                tbl = ".".join([cfg['out_schema'], cfg['out_table']])
+                for p in out_paths:
+                    # remove trailing commas from the CSV (until #58 is fixed in 3dfier)
+                    command = "sed -i 's/,$//' " + p
+                    call(command, shell=True)
+                    
+                    with open(p, "r") as f_in:
+                        # skip header
+                        next(f_in)
+                        cur.copy_from(f_in, tbl, sep=',')
+                        
+                    # delete the CSV
+                    command = "rm" + p
+                    call(command, shell=True)
+        dbase.sendQuery(
+            sql.SQL("""CREATE INDEX IF NOT EXISTS {table}_id_idx 
+                            ON {schema}.{table} (id);
+                        """.format(schema=cfg['out_schema'],
+                                   table=cfg['out_table'])
+                    )
+        )
+        dbase.sendQuery(
+            sql.SQL("""COMMENT ON {schema}.{table} IS
+                    'Building heights generated with 3dfier.';
+                    """.format(schema=cfg['out_schema'],
+                                   table=cfg['out_table'])
+                    )
+        )
+    else:
+        pass
 
     # =========================================================================
     # Reporting
     # =========================================================================
     tiles = set(tiles)
     tiles_skipped = set(tiles_skipped)
-    print("\nTotal number of tiles processed: " +
-          str(len(tiles.difference(tiles_skipped))))
-    print("Total number of tiles skipped: " + str(len(tiles_skipped)))
-    print("Done.")
+    logging.info("Total number of tiles processed: %s", 
+                 str(len(tiles.difference(tiles_skipped))))
+    logging.info("Total number of tiles skipped: %s", 
+                 str(len(tiles_skipped)))
 
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@
 from setuptools import setup
 
 setup(name='batch3dfier',
-    version='0.6.0',
+    version='0.7.0',
     description='A wrapper around 3dfier to 3dfy datasets in batch.',
     url='https://github.com/balazsdukai/batch3dfier',
     author='Balázs Dukai',
@@ -36,7 +36,7 @@ setup(name='batch3dfier',
     python_requires='>=3',
     keywords='GIS 3DGIS CityGML LiDAR',
     entry_points={
-        'console_scripts': ['batch3dfy = batch3dfier.batch3dfierapp:main']
+        'console_scripts': ['batch3dfier = batch3dfier.batch3dfierapp:main']
     },
     include_package_data=True,
     zip_safe=False
