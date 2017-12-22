@@ -36,7 +36,7 @@ setup(name='batch3dfier',
     python_requires='>=3',
     keywords='GIS 3DGIS CityGML LiDAR',
     entry_points={
-        'console_scripts': ['batch3dfy = batch3dfier.batch3dfierapp:main']
+        'console_scripts': ['batch3dfier = batch3dfier.batch3dfierapp:main']
     },
     include_package_data=True,
     zip_safe=False
