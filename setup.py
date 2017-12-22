@@ -4,7 +4,7 @@
 from setuptools import setup
 
 setup(name='batch3dfier',
-    version='0.6.0',
+    version='0.7.0',
     description='A wrapper around 3dfier to 3dfy datasets in batch.',
     url='https://github.com/balazsdukai/batch3dfier',
     author='Balázs Dukai',

@@ -13,7 +13,7 @@ This Python program helps you to create 3D models of LoD1 from massive data sets
 
 The software `3dfier <https://github.com/tudelft3d/3dfier>`__ is the heart of *batch3dfier*, where *batch3dfier* adds a tiling framework, allowing to scale to an arbitrary size of input data set.
 
-As of version 0.5.0 *batch3dfier*:
+As of version 0.7.0 *batch3dfier*:
 
 -   Can 3dfy 2D footprints (polygons) that are on a single *layer*, in this case, a single database table (e.g. building footprints).
 
@@ -28,6 +28,8 @@ As of version 0.5.0 *batch3dfier*:
     -   ``all`` to process all tiles in the footprint tile index.
 
 -   Expects that the footprints, the *tile indexes* of footprints and pointcloud are stored in a PostgreSQL database, the pointcloud stored in files.
+
+- In case of CSV-BUILDINGS-MULTIPLE output format, it can copy the CSV contents into postgres, thus the different buildings heights can be joined on the footprints.
 
 -   Has been only tested with *BAG* and *AHN* data sets.
 

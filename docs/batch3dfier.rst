@@ -130,13 +130,12 @@ Following the convention of *3dfier*, *batch3dfier* also uses a YAML configurati
 
     ::
     
-        input_polygons:
-            database:
-                dbname: batch3dfier_test
-                host: localhost
-                port: 5432
-                user: batch3dfier
-                pw: batch3d_test
+        database:
+            dbname: batch3dfier_test
+            host: localhost
+            port: 5432
+            user: batch3dfier
+            pw: batch3d_test
 
 -   Name of the schema that contains the footprint tile views. In case the user has no CREATE and DROP privilege on ``tile_schema``, in ``user_schema`` you can provide a schema where it has. Only relevant when ``extent`` is provided.
 
@@ -220,13 +219,15 @@ There are three options to tell batch3dfier what to extrude:
                     geometry: geom
                     unit_name: unit
 
--   Output format for the 3dfied tiles, and the directory where to put them.
+-   Output format for the 3dfied tiles, and the directory where to put them. In case of CSV-BUILDINGS-MULTIPLE output format, it is possible to import the CSVs into a postgres table. If ``output:table`` is not empty, ``batch3dfier`` will try to create the table with the given name. This table has the same fields as the CSV-BUILDINGS-MULTIPLE output. A B-tree index is created on the ``id`` field of the table. All CSV files are copied into the single table, and the files are deleted after import.
 
     ::
     
         output:
-            format: OBJ 
+            format: CSV-BUILDINGS-MULTIPLE 
             dir: /Data/3DBAG
+            schema: bag
+            table: heights
 
 -   Location of the *3dfier* executable.
 

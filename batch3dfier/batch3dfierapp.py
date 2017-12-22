@@ -11,6 +11,7 @@ import time
 import warnings
 import argparse
 from subprocess import call
+import logging
 
 import yaml
 from psycopg2 import sql
@@ -62,7 +63,7 @@ def parse_config_yaml(args_in):
             "\n No file format is appended to output. Currently only .obj or .csv is handled.\n")
     cfg['output_format'] = OUTPUT_FORMAT
     cfg['output_dir'] = os.path.abspath(cfg_stream["output"]["dir"])
-    if 'csv' in cfg['output_format'].lower():
+    if 'CSV-BUILDINGS-MULTIPLE' == cfg['output_format']:
         cfg['out_schema'] = cfg_stream["output"]["schema"]
         cfg['out_table'] = cfg_stream["output"]["table"]
     else:
@@ -127,6 +128,13 @@ def main():
     cfg = parse_config_yaml(args_in)
     dbase = cfg['dbase']
     tiles = cfg['tiles']
+    
+    
+    logfile = os.path.join(cfg['output_dir'], 'batch3dfier.log')
+    logging.basicConfig(filename=logfile,
+                        filemode='a',
+                        level=logging.INFO, 
+                        format='%(asctime)s - %(levelname)s - %(message)s')
 
     # =========================================================================
     # Get tile list if 'extent' provided
@@ -262,14 +270,14 @@ def main():
     # Fill the queue
     queueLock.acquire()
     if union_view:
-        print("union_view is", union_view)
+#         print("union_view is", union_view)
         workQueue.put(union_view)
     elif tiles_clipped:
-        print("tiles_clipped is", tiles_clipped)
+#         print("tiles_clipped is", tiles_clipped)
         for tile in tiles_clipped:
             workQueue.put(tile)
     else:
-        print("tile_views is", tile_views)
+#         print("tile_views is", tile_views)
         for tile in tile_views:
             workQueue.put(tile)
     queueLock.release()
@@ -348,10 +356,10 @@ def main():
     # =========================================================================
     tiles = set(tiles)
     tiles_skipped = set(tiles_skipped)
-    print("\nTotal number of tiles processed: " +
-          str(len(tiles.difference(tiles_skipped))))
-    print("Total number of tiles skipped: " + str(len(tiles_skipped)))
-    print("Done.")
+    logging.info("Total number of tiles processed: %s", 
+                 str(len(tiles.difference(tiles_skipped))))
+    logging.info("Total number of tiles skipped: %s", 
+                 str(len(tiles_skipped)))
 
 
 if __name__ == '__main__':
