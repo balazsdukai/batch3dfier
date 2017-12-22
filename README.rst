@@ -65,9 +65,11 @@ The package has been tested with Python3.4-3.6 on Linux with the following packa
 Install and run
 ===============
 
--   Download and install the latest release:
+-   Download and install the latest release from GitHub:
 
     ``$ pip3 install git+https://github.com/balazsdukai/batch3dfier``
+
+- Alternatively, install from the wheel in ``/dist``.
 
 -   Run *batch3dfier* from the command line:
 
