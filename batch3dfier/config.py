@@ -651,7 +651,7 @@ def create_heights_table(db, schema, table):
     schema_q = sql.Identifier(schema)
     table_q = sql.Identifier(table)
     query = sql.SQL("""
-    CREATE TABLE IF NOT EXISTS {}.{} (
+    CREATE TABLE IF NOT EXISTS {schema}.{table} (
         id text,
         "ground-0.00" real,
         "ground-0.10" real,
