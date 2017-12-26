@@ -155,7 +155,6 @@ input_elevation:
   - datasets:
       {pc_path}
     omit_LAS_classes:
-      - 1
     thinning: 0
 
 options:
@@ -651,7 +650,7 @@ def create_heights_table(db, schema, table):
     schema_q = sql.Identifier(schema)
     table_q = sql.Identifier(table)
     query = sql.SQL("""
-    CREATE TABLE IF NOT EXISTS {}.{} (
+    CREATE TABLE IF NOT EXISTS {schema}.{table} (
         id text,
         "ground-0.00" real,
         "ground-0.10" real,
@@ -669,4 +668,8 @@ def create_heights_table(db, schema, table):
         "roof-0.99" real
         );
     """).format(schema=schema_q, table=table_q)
-    db.sendQuery(query)
+    try:
+        db.sendQuery(query)
+        return(True)
+    except:
+        return(False)

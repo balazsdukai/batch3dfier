@@ -85,6 +85,10 @@ Install and run
 
     ``$ batch3dfy -t 4 ./batch3dfier_config.yml``
     
+-   In case the output format ``CSV-BUILDING-MULTIPLE`` is used, it is possible to copy the CSV files into a posgres table. The default is to keep the CSV files after import. To delete the files after import:
+
+    ``$ batch3dfy --del-csv ./batch3dfier_config.yml``
+    
 -   Run the tests:
 
     ``$ pytest batch3dfier/tests``

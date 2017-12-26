@@ -31,12 +31,24 @@ def parse_console_args():
         help="The number of threads to run.",
         default=3,
         type=int)
+    parser.add_argument(
+        "--del-csv",
+        action="store_true",
+        dest="rm",
+        help="Remove CSV files from disk after import (relevant when CSV-BUILDINGS-MULTIPLE)")
+    parser.add_argument(
+        "--keep-csv",
+        action="store_false",
+        dest="rm",
+        help="Keep CSV files from disk after import (relevant when CSV-BUILDINGS-MULTIPLE)")
+    parser.set_defaults(rm=False)
 
     args = parser.parse_args()
     args_in = {}
     args_in['cfg_file'] = os.path.abspath(args.path)
     args_in['cfg_dir'] = os.path.dirname(args_in['cfg_file'])
     args_in['threads'] = args.threads
+    args_in['rm'] = args.rm
 
     return(args_in)
 
@@ -98,8 +110,7 @@ def parse_config_yaml(args_in):
     # Connect to database ----------------------------------------------------
     cfg['dbase'] = db.db(
         dbname=cfg_stream["database"]["dbname"],
-        host=str(
-            cfg_stream["database"]["host"]),
+        host=str(cfg_stream["database"]["host"]),
         port=cfg_stream["database"]["port"],
         user=cfg_stream["database"]["user"],
         password=cfg_stream["database"]["pw"])
@@ -249,7 +260,6 @@ def main():
                 time.sleep(1)
 
     # Prep
-
     threadList = ["Thread-" + str(t + 1) for t in range(args_in['threads'])]
     queueLock = threading.Lock()
     workQueue = queue.Queue(0)
@@ -299,17 +309,6 @@ def main():
             cfg['user_schema'],
             views_to_drop=tiles_clipped)
 
-    # Delete temporary config files
-    yml_cfg = [
-        os.path.join(
-            args_in['cfg_dir'],
-            t +
-            "_config.yml") for t in threadList]
-    command = "rm"
-    for c in yml_cfg:
-        command = command + " " + c
-    call(command, shell=True)
-
     # If requires, copy the CSV output to postgres
     if cfg['out_table']:
         config.create_heights_table(dbase, cfg['out_schema'],
@@ -329,17 +328,20 @@ def main():
                         cur.copy_from(f_in, tbl, sep=',')
 
                     # delete the CSV
-                    command = "rm" + p
-                    call(command, shell=True)
+                    if args_in['rm']:
+                        command = "rm" + p
+                        call(command, shell=True)
+                    else:
+                        pass
         dbase.sendQuery(
             sql.SQL("""CREATE INDEX IF NOT EXISTS {table}_id_idx
-                            ON {schema}.{table} (id);
-                        """.format(schema=cfg['out_schema'],
-                                   table=cfg['out_table'])
+                    ON {schema}.{table} (id);
+                    """.format(schema=cfg['out_schema'],
+                               table=cfg['out_table'])
                     )
         )
         dbase.sendQuery(
-            sql.SQL("""COMMENT ON {schema}.{table} IS
+            sql.SQL("""COMMENT ON TABLE {schema}.{table} IS
                     'Building heights generated with 3dfier.';
                     """.format(schema=cfg['out_schema'],
                                table=cfg['out_table'])
@@ -347,6 +349,17 @@ def main():
         )
     else:
         pass
+
+    # Delete temporary config files
+    yml_cfg = [
+        os.path.join(
+            args_in['cfg_dir'],
+            t +
+            "_config.yml") for t in threadList]
+    command = "rm"
+    for c in yml_cfg:
+        command = command + " " + c
+    call(command, shell=True)
 
     # =========================================================================
     # Reporting

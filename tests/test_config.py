@@ -124,7 +124,7 @@ def test_yamlr(batch3dfier_db, pointcloud, tile):
                 'datasets': [
                     os.path.abspath('example_data/c_25gn1_a.laz'),
                     os.path.abspath('example_data/c_25gn1_b.laz')],
-                'omit_LAS_classes': [1],
+                'omit_LAS_classes': None,
                 'thinning': 0}],
         'input_polygons': [
             {
@@ -178,3 +178,9 @@ def test_parse_sql_select_fields(batch3dfier_db):
     sql_str = sql.as_string(batch3dfier_db.conn)
 
     assert sql_str == sql_test
+    
+    
+def test_create_heights_table(batch3dfier_db):
+    a = config.create_heights_table(batch3dfier_db, "bag", "heights")
+    
+    assert a is True
