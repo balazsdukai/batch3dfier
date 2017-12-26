@@ -124,7 +124,7 @@ def test_yamlr(batch3dfier_db, pointcloud, tile):
                 'datasets': [
                     os.path.abspath('example_data/c_25gn1_a.laz'),
                     os.path.abspath('example_data/c_25gn1_b.laz')],
-                'omit_LAS_classes': [1],
+                'omit_LAS_classes': None,
                 'thinning': 0}],
         'input_polygons': [
             {
