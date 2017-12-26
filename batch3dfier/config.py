@@ -155,7 +155,6 @@ input_elevation:
   - datasets:
       {pc_path}
     omit_LAS_classes:
-      - 1
     thinning: 0
 
 options:
@@ -669,4 +668,8 @@ def create_heights_table(db, schema, table):
         "roof-0.99" real
         );
     """).format(schema=schema_q, table=table_q)
-    db.sendQuery(query)
+    try:
+        db.sendQuery(query)
+        return(True)
+    except:
+        return(False)
