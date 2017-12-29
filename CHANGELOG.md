@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Import the contents of CSV-BUILDINGS-MULTIPLE into a postgres table that can be joined on the footprints
 - Log file (just basic info)
 - Python wheel
+- bag3d module that currently helps to generate a 3D BAG and import the CSVs into postgres
 
 ### Changed
 - `batch3dfy` console script -> `batch3dfier`
