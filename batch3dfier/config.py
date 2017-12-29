@@ -636,40 +636,8 @@ def drop_2Dtiles(db, user_schema, views_to_drop):
         db.conn.commit()
         print("Dropped {} in schema {}.".format(views_to_drop, user_schema))
         # sql.Identifier("tile_index").as_string(dbs.conn)
+        return(True)
     except BaseException:
         print("Cannot drop views ", views_to_drop)
         db.conn.rollback()
-        return(False)
-
-    return(True)
-
-
-def create_heights_table(db, schema, table):
-    """Create a postgres table that can store the content of 3dfier CSV-BUILDINGS-MULTIPLE"""
-
-    schema_q = sql.Identifier(schema)
-    table_q = sql.Identifier(table)
-    query = sql.SQL("""
-    CREATE TABLE IF NOT EXISTS {schema}.{table} (
-        id text,
-        "ground-0.00" real,
-        "ground-0.10" real,
-        "ground-0.20" real,
-        "ground-0.30" real,
-        "ground-0.40" real,
-        "ground-0.50" real,
-        "roof-0.00" real,
-        "roof-0.10" real,
-        "roof-0.25" real,
-        "roof-0.50" real,
-        "roof-0.75" real,
-        "roof-0.90" real,
-        "roof-0.95" real,
-        "roof-0.99" real
-        );
-    """).format(schema=schema_q, table=table_q)
-    try:
-        db.sendQuery(query)
-        return(True)
-    except:
         return(False)

@@ -18,6 +18,7 @@ from psycopg2 import sql
 
 from batch3dfier import config
 from batch3dfier import db
+from batch3dfier import bag3d
 
 
 def parse_console_args():
@@ -311,42 +312,7 @@ def main():
 
     # If requires, copy the CSV output to postgres
     if cfg['out_table']:
-        config.create_heights_table(dbase, cfg['out_schema'],
-                                    cfg['out_table'])
-        with dbase.conn:
-            with dbase.conn.cursor() as cur:
-                tbl = ".".join([cfg['out_schema'], cfg['out_table']])
-                for p in out_paths:
-                    # remove trailing commas from the CSV (until #58 is fixed
-                    # in 3dfier)
-                    command = "sed -i 's/,$//' " + p
-                    call(command, shell=True)
-
-                    with open(p, "r") as f_in:
-                        # skip header
-                        next(f_in)
-                        cur.copy_from(f_in, tbl, sep=',')
-
-                    # delete the CSV
-                    if args_in['rm']:
-                        command = "rm" + p
-                        call(command, shell=True)
-                    else:
-                        pass
-        dbase.sendQuery(
-            sql.SQL("""CREATE INDEX IF NOT EXISTS {table}_id_idx
-                    ON {schema}.{table} (id);
-                    """.format(schema=cfg['out_schema'],
-                               table=cfg['out_table'])
-                    )
-        )
-        dbase.sendQuery(
-            sql.SQL("""COMMENT ON TABLE {schema}.{table} IS
-                    'Building heights generated with 3dfier.';
-                    """.format(schema=cfg['out_schema'],
-                               table=cfg['out_table'])
-                    )
-        )
+        bag3d.csv2db(dbase, cfg, args_in, out_paths)
     else:
         pass
 
