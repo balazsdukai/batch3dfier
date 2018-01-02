@@ -178,9 +178,3 @@ def test_parse_sql_select_fields(batch3dfier_db):
     sql_str = sql.as_string(batch3dfier_db.conn)
 
     assert sql_str == sql_test
-    
-    
-def test_create_heights_table(batch3dfier_db):
-    a = config.create_heights_table(batch3dfier_db, "bag", "heights")
-    
-    assert a is True
