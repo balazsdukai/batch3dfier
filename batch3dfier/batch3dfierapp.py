@@ -18,7 +18,6 @@ from psycopg2 import sql
 
 from batch3dfier import config
 from batch3dfier import db
-from batch3dfier import bag3d
 
 
 def parse_console_args():
@@ -32,24 +31,12 @@ def parse_console_args():
         help="The number of threads to run.",
         default=3,
         type=int)
-    parser.add_argument(
-        "--del-csv",
-        action="store_true",
-        dest="rm",
-        help="Remove CSV files from disk after import (relevant when CSV-BUILDINGS-MULTIPLE)")
-    parser.add_argument(
-        "--keep-csv",
-        action="store_false",
-        dest="rm",
-        help="Keep CSV files from disk after import (relevant when CSV-BUILDINGS-MULTIPLE)")
-    parser.set_defaults(rm=False)
 
     args = parser.parse_args()
     args_in = {}
     args_in['cfg_file'] = os.path.abspath(args.path)
     args_in['cfg_dir'] = os.path.dirname(args_in['cfg_file'])
     args_in['threads'] = args.threads
-    args_in['rm'] = args.rm
 
     return(args_in)
 
@@ -310,11 +297,6 @@ def main():
             cfg['user_schema'],
             views_to_drop=tiles_clipped)
 
-    # If requires, copy the CSV output to postgres
-    if cfg['out_table']:
-        bag3d.csv2db(dbase, cfg, args_in, out_paths)
-    else:
-        pass
 
     # Delete temporary config files
     yml_cfg = [
@@ -334,8 +316,7 @@ def main():
     tiles_skipped = set(tiles_skipped)
     logging.info("Total number of tiles processed: %s",
                  str(len(tiles.difference(tiles_skipped))))
-    logging.info("Total number of tiles skipped: %s",
-                 str(len(tiles_skipped)))
+    logging.info("Tiles skipped: %s", tiles_skipped)
 
 
 if __name__ == '__main__':

@@ -5,11 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.7.0] - 2018-01-02
 ### Added
 - Import the contents of CSV-BUILDINGS-MULTIPLE into a postgres table that can be joined on the footprints
 - Log file (just basic info)
 - Python wheel
-- bag3d module that currently helps to generate a 3D BAG and import the CSVs into postgres
+- bag3d module that helps to generate a 3D BAG and import the CSVs into postgres
+- `bag3d` console script
 
 ### Changed
 - `batch3dfy` console script -> `batch3dfier`
