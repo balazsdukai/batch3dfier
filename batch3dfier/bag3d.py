@@ -193,17 +193,58 @@ def create_bag3d_relations(db):
     db.sendQuery("COMMENT ON VIEW bagactueel.bag3d_valid_height IS 'The BAG footprints where the building was built before the AHN3 was created';")
 
 
-def union_csv(csv_dir, out_file, rm=False):
-    """Merge CSV files in a directory"""
-    p = os.path.join(csv_dir, "*.csv")
-    command = "cat {p} > {o}".format(p=p,
-                                     o=out_file)
-    run(command, shell=True)
-    if rm:
-        run(["rm", "-r", csv_dir])
+# def union_csv(csv_dir, out_file, rm=False):
+#     """Merge CSV files in a directory"""
+#     p = os.path.join(csv_dir, "*.csv")
+#     command = "cat {p} > {o}".format(p=p,
+#                                      o=out_file)
+#     run(command, shell=True)
+#     if rm:
+#         run(["rm", "-r", csv_dir])
+        
 
 
-def export_bag3d(db, csv_dir, out_dir, rm_csv):
+def export_csv(cur, csv_out):
+    """Export the 3DBAG table into a CSV file"""
+
+    query = sql.SQL("""COPY (
+    SELECT
+        gid,
+        identificatie,
+        aanduidingrecordinactief,
+        aanduidingrecordcorrectie,
+        officieel,
+        inonderzoek,
+        documentnummer,
+        documentdatum,
+        pandstatus,
+        bouwjaar,
+        begindatumtijdvakgeldigheid,
+        einddatumtijdvakgeldigheid,
+        "ground-0.00",
+        "ground-0.10",
+        "ground-0.20",
+        "ground-0.30",
+        "ground-0.40",
+        "ground-0.50",
+        "roof-0.00",
+        "roof-0.10",
+        "roof-0.25",
+        "roof-0.50",
+        "roof-0.75",
+        "roof-0.90",
+        "roof-0.95",
+        "roof-0.99",
+        ahn_file_date
+    FROM bagactueel.bag3d)
+    TO STDOUT
+    WITH (FORMAT 'csv', HEADER TRUE, ENCODING 'utf-8')""")
+    
+    with open(csv_out, "w") as c_out:
+        cur.copy_to(query, c_out)
+
+
+def export_bag3d(db, out_dir):
     """Export and prepare the 3D BAG in various formats
     
     PostGIS dump is restored as:
@@ -288,10 +329,12 @@ bag".format(h=db.host,
                                              u=db.user)
     run(command, shell=True)
     
-    # Merge CSV files
+    # CSV
     x = "bag3d_{d}.csv".format(d=date)
     csv_out = os.path.join(out_dir, "csv", x)
-    union_csv(csv_dir, csv_out, rm=rm_csv)
+    with db.conn:
+        with db.conn.cursor() as cur:
+            export_csv(cur, csv_out)
 
 
 def main():
@@ -347,8 +390,10 @@ def main():
     
     create_bag3d_relations(cfg['dbase'])
     
-    export_bag3d(cfg['dbase'], args_in['csv_dir'], args_in['out_dir'], 
-                 args_in['rm'])
+    export_bag3d(cfg['dbase'], args_in['out_dir'])
+    
+    if args_in['rm']:
+        run(["rm", "-r", args_in['csv_dir']])
     
     # report how many files were created and how many tiles are there
 
