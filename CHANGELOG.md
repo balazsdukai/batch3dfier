@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+- CSV output from postgres table instead of union of CSV files
+- requires PostgreSQL >9.6, because of ADD COLUMN IF NOT EXISTS in footprints.update_tile_index()
+
 ## [0.7.0] - 2018-01-02
 ### Added
 - Import the contents of CSV-BUILDINGS-MULTIPLE into a postgres table that can be joined on the footprints

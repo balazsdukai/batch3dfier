@@ -144,7 +144,7 @@ def create_bag3d_relations(db):
     CREATE TABLE bagactueel.bag3d AS
     SELECT
         p.gid,
-        p.identificatie,
+        p.identificatie::numeric,
         p.aanduidingrecordinactief,
         p.aanduidingrecordcorrectie,
         p.officieel,
@@ -172,8 +172,11 @@ def create_bag3d_relations(db):
         h."roof-0.99",
         h.ahn_file_date
     FROM bagactueel.pandactueelbestaand p
-    INNER JOIN bagactueel.heights h ON p.identificatie = h.id;
+    INNER JOIN bagactueel.heights h ON p.identificatie::numeric = h.id;
     """)
+    # the type of bagactueel.pand.identificatie can change between different 
+    # BAG extracts (numeric or varchar)
+    
     db.sendQuery(query)
     
     db.sendQuery("CREATE INDEX bag3d_identificatie_idx ON bagactueel.bag3d (identificatie);")
@@ -191,17 +194,6 @@ def create_bag3d_relations(db):
     """)
     
     db.sendQuery("COMMENT ON VIEW bagactueel.bag3d_valid_height IS 'The BAG footprints where the building was built before the AHN3 was created';")
-
-
-# def union_csv(csv_dir, out_file, rm=False):
-#     """Merge CSV files in a directory"""
-#     p = os.path.join(csv_dir, "*.csv")
-#     command = "cat {p} > {o}".format(p=p,
-#                                      o=out_file)
-#     run(command, shell=True)
-#     if rm:
-#         run(["rm", "-r", csv_dir])
-        
 
 
 def export_csv(cur, csv_out):
@@ -241,7 +233,7 @@ def export_csv(cur, csv_out):
     WITH (FORMAT 'csv', HEADER TRUE, ENCODING 'utf-8')""")
     
     with open(csv_out, "w") as c_out:
-        cur.copy_to(query, c_out)
+        cur.copy_expert(query, c_out)
 
 
 def export_bag3d(db, out_dir):
