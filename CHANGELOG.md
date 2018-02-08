@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.7.1]
+## [0.7.1] - 2018-02-08
 ### Changed
 - CSV output from postgres table instead of union of CSV files
 - requires PostgreSQL >9.6, because of ADD COLUMN IF NOT EXISTS in footprints.update_tile_index()
