@@ -38,7 +38,7 @@ def update_tile_index(db, table_index, fields_index):
     id_col_q = sql.Identifier(id_col)
 
     db.sendQuery(sql.SQL("""ALTER TABLE {}.{}
-             ADD COLUMN geom_border geometry;""").format(schema_q, table_q))
+             ADD COLUMN IF NOT EXISTS geom_border geometry;""").format(schema_q, table_q))
 
     db.sendQuery(
         sql.SQL("""
@@ -79,7 +79,7 @@ def update_tile_index(db, table_index, fields_index):
     )
 
     sql_query = sql.SQL("""
-            CREATE INDEX {idx_name} ON {schema}.{table} USING gist (geom_border);
+            CREATE INDEX IF NOT EXISTS {idx_name} ON {schema}.{table} USING gist (geom_border);
             SELECT populate_geometry_columns({name}::regclass);
             """).format(idx_name=sql.Identifier(table + "_" + geom_col + "_border_idx"),
                         schema=schema_q,
