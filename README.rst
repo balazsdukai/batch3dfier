@@ -54,6 +54,8 @@ Requirements
 
 Python 3.4+
 
+PostgreSQL 9.6+
+
 The package has been tested with Python3.4-3.6 on Linux with the following packages:
 
 -  PyYAML (3.11)
@@ -100,6 +102,7 @@ Example data sets are in ``batch3dfier/example_data``.
 .. |Licence| image:: https://img.shields.io/badge/licence-GPL--3-blue.svg
    :target: http://www.gnu.org/licenses/gpl-3.0.html
 .. |Python 3.4+| image:: https://img.shields.io/badge/python-3.4+-blue.svg
+.. |PostgreSQL 9.6+| image:: https://img.shields.io/badge/PostgreSQL-9.6%2B-blue.svg
 .. |build| image:: https://travis-ci.org/balazsdukai/batch3dfier.svg?branch=master
    :target: https://travis-ci.org/balazsdukai/batch3dfier
 .. |codecov| image:: https://codecov.io/gh/balazsdukai/batch3dfier/branch/master/graph/badge.svg
