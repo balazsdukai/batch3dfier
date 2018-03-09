@@ -1,0 +1,20 @@
+# services setup
+.project
+.pydevproject
+__pycache__
+.cache
+*~
+.settings
+test.qgs*
+.tox
+coverage_html
+.dbeaver-data-sources.xml
+.coverage
+
+# build
+build
+batch3dfier.egg-info
+
+# SQL
+Scripts
+
