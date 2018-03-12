@@ -187,11 +187,13 @@ For the area of the Netherlands, multiple pointcloud data sets are available. Th
     ::
    
         input_elevation:
-            dataset_dirs: 
-                - /batch3dfier/example_data/ahn3
-                - [/batch3dfier/example_data/ahn2/ground, /batch3dfier/example_data/ahn2/rest]
+            dataset_dir: 
+                - '/batch3dfier/example_data/ahn3'
+                - ['/batch3dfier/example_data/ahn2/ground', '/batch3dfier/example_data/ahn2/rest']
    
--   Naming convention for the pointcloud files, where tile_case controls how the string matching is done for {tile} in order to find the ``input_elevation`` files in ``dataset_dir``. Allowed are options are:
+-   Naming convention for the pointcloud files, where tile_case controls how the string matching is done for {tile} in order to find the ``input_elevation`` files in ``dataset_dir``. There has to be a value for each listed directory in ``dataset_dir``, and matching is positional. So for example, files in ``/batch3dfier/example_data/ahn2/ground`` follow the naming convention of ``g{tile}.laz``.
+
+Allowed are options for ``tile_case`` are:
 
     -   'upper' (e.g. C_25GN1_filtered.LAZ),
     -   'lower' (e.g. C_25gn1_filtered.LAZ),
@@ -199,8 +201,8 @@ For the area of the Netherlands, multiple pointcloud data sets are available. Th
     
     ::
    
-        dataset_name: c_{tile}.laz # naming convention for the pointcloud files
-        tile_case: lower
+        dataset_name: ['c_{tile}.laz', ['g{tile}.laz', 'u{tile}.laz']] # naming convention for the pointcloud files
+        tile_case: ['lower', ['lower', 'lower']]
     
 -   Both the footprint and pointcloud tile indexes are expected to be in the database.
 
