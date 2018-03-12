@@ -4,17 +4,6 @@ from .context import db
 from .context import footprints
 
 
-@pytest.fixture("module")
-def batch3dfier_db(request):
-    dbs = db.db(dbname='batch3dfier_db', host='localhost', port='5432',
-                user='batch3dfier', password='batch3d_test')
-
-    def disconnect():
-        dbs.close()
-    request.addfinalizer(disconnect)
-
-    return(dbs)
-
 
 def test_update_tile_index(batch3dfier_db):
     batch3dfier_db.sendQuery(
