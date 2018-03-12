@@ -41,6 +41,16 @@ def parse_console_args():
     return(args_in)
 
 
+def add_abspath(dirs_list):
+    """Recursively append the absolute path to the paths in a nested list"""
+    for i, elem in enumerate(dirs_list):
+        if isinstance(elem, str):
+            dirs_list[i] = os.path.abspath(elem)
+        else:
+            dirs_list[i] = add_abspath(elem)
+    return dirs_list
+
+
 def parse_config_yaml(args_in):
     # =========================================================================
     # User input and Settings
@@ -51,7 +61,7 @@ def parse_config_yaml(args_in):
     cfg_stream = yaml.load(stream)
 
     cfg['pc_file_name'] = cfg_stream["input_elevation"]["dataset_name"]
-    cfg['pc_dir'] = os.path.abspath(
+    cfg['pc_dir'] = add_abspath(
         cfg_stream["input_elevation"]["dataset_dir"])
     cfg['pc_tile_case'] = cfg_stream["input_elevation"]["tile_case"]
     cfg['polygons'] = cfg_stream['tile_index']['polygons']
