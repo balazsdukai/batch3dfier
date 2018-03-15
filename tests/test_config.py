@@ -43,6 +43,13 @@ def pointcloud():
     return(p)
 
 
+# @pytest.fixture("module")
+# def pc_format():
+#     p = {'pc_tiles': ['1kD', '2aba', '3AA', 'zz4'],
+#          'dataset_name'}
+#     return p
+
+
 @pytest.fixture("module")
 def tile():
     return('25gn1_c1')
@@ -83,6 +90,24 @@ def test_find_pc_tiles_tile(batch3dfier_db, cfg, tile):
         tile_footprint=tile)
     assert tiles == ['25gn1_a', '25gn1_b']
 
+
+def test_pc_name_dict():
+    dataset_dir = ['a', ['b', 'c'], 'd']
+    dataset_name = ['a_{tile}', ['b{tile}', 'c-{tile}'], 'd_{tile}']
+    d = {'a': 'a_{tile}', 'b': 'b{tile}', 'c': 'c-{tile}', 'd': 'd_{tile}'}
+    pc_dict = config.pc_name_dict(dataset_dir, dataset_name)
+    assert pc_dict == d
+
+
+def test_pc_name_dict_err():
+    dataset_dir = ['a', ['b', ['c', 'c1']], 'd']
+    dataset_name = ['a_{tile}', ['b{tile}', ['c-{tile}', 'c1-{tile}']], 'd_{tile}']
+    with pytest.raises(ValueError):
+        config.pc_name_dict(dataset_dir, dataset_name)
+
+
+# def test_format_tile_names():
+#     res = config.format_tile_name(pc_tiles, pc_dataset_name, pc_tile_case)
 
 def test_find_pc_files(pointcloud):
     pc_path = config.find_pc_files(pointcloud['pc_tiles'],

@@ -178,6 +178,21 @@ output:
     return(config)
 
 
+def pc_name_dict(dirs_list, dataset_name):
+    """Map dataset_dir to dataset_name"""
+    d = {}
+    for i, elem in enumerate(dirs_list):
+        if isinstance(elem, str):
+            d[elem] = dataset_name[i]
+        else:
+            for j, elem2 in enumerate(dirs_list[i]):
+                if isinstance(elem2, str):
+                    d[elem2] = dataset_name[i][j]
+                else:
+                    raise ValueError('Lists deeper than 2 levels are not supported in dataset_dir')
+    return d
+
+
 def find_pc_files(pc_tiles, pc_dir, pc_dataset_name, pc_tile_case):
     """Find pointcloud files in the file system when given a list of pointcloud tile names
     """
