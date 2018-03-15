@@ -60,7 +60,7 @@ def parse_config_yaml(args_in):
     stream = open(args_in['cfg_file'], "r")
     cfg_stream = yaml.load(stream)
 
-    cfg['pc_file_name'] = cfg_stream["input_elevation"]["dataset_name"]
+    cfg['pc_dataset_name'] = cfg_stream["input_elevation"]["dataset_name"]
     cfg['pc_dir'] = add_abspath(
         cfg_stream["input_elevation"]["dataset_dir"])
     cfg['pc_tile_case'] = cfg_stream["input_elevation"]["tile_case"]
@@ -232,7 +232,7 @@ def main():
                     db=dbase,
                     tile=tile,
                     schema_tiles=cfg['user_schema'],
-                    pc_file_name=cfg['pc_file_name'],
+                    pc_dataset_name=cfg['pc_dataset_name'],
                     pc_tile_case=cfg['pc_tile_case'],
                     pc_dir=cfg['pc_dir'],
                     table_index_pc=cfg['elevation'],

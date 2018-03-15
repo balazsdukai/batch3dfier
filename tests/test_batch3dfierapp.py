@@ -24,7 +24,7 @@ def test_parse_config_yaml_1():
                    ['/home/bdukai/Development/batch3dfier/example_data/ahn2/ground',
                      '/home/bdukai/Development/batch3dfier/example_data/ahn2/rest']
                    ],
-        'pc_file_name': 'c_{tile}.laz',
+        'pc_dataset_name': 'c_{tile}.laz',
         'pc_tile_case': 'lower',
         'polygons': {
             'fields': {
