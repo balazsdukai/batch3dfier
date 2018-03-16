@@ -3,6 +3,7 @@
 """Configure batch3dfier with the input data."""
 
 import os.path
+import re
 from subprocess import call
 
 from shapely.geometry import shape
@@ -17,7 +18,8 @@ def call_3dfier(db, tile, schema_tiles,
                 table_index_footprint, fields_index_footprint, uniqueid,
                 extent_ewkb, clip_prefix, prefix_tile_footprint,
                 yml_dir, tile_out, output_format, output_dir,
-                path_3dfier, thread):
+                path_3dfier, thread,
+                pc_file_index):
     """Call 3dfier with the YAML config created by yamlr().
 
     Note
@@ -59,7 +61,8 @@ def call_3dfier(db, tile, schema_tiles,
                              extent_ewkb, tile_footprint=tile,
                              prefix_tile_footprint=prefix_tile_footprint)
 
-    pc_path = find_pc_files(pc_tiles, pc_dir, pc_dataset_name, pc_tile_case)
+#     pc_path = find_pc_files(pc_tiles, pc_dir, pc_dataset_name, pc_tile_case)
+    pc_path = [t for tile in pc_tiles for t in pc_file_index[tile]]
 
     # prepare output file name
     if not tile_out:
@@ -180,17 +183,85 @@ output:
 
 def pc_name_dict(dirs_list, dataset_name):
     """Map dataset_dir to dataset_name"""
-    d = {}
+    pc_name_map = {}
     for i, elem in enumerate(dirs_list):
         if isinstance(elem, str):
-            d[elem] = dataset_name[i]
+            pc_name_map[elem] = {'name': dataset_name[i], 'priority': i}
         else:
             for j, elem2 in enumerate(dirs_list[i]):
                 if isinstance(elem2, str):
-                    d[elem2] = dataset_name[i][j]
+                    pc_name_map[elem2] = {'name': dataset_name[i][j], 'priority': i}
                 else:
                     raise ValueError('Lists deeper than 2 levels are not supported in dataset_dir')
-    return d
+    return pc_name_map
+
+
+def pc_file_index(pc_name_map):
+    """Create an index table of the pointcloud files in the given directories
+    
+    Maps the location of the point cloud files to the point cloud tile IDs/names.
+    The order of priority for the files is determined by the order in 
+    'input_elevation: dataset_dir'
+    And therefore, if given 5 directories [A, [B, C, D], E], their priority
+    is [1, [2, 2, 2], 3]. Where a lower number means higher priority. Thus if a
+    tile ('3a') has matching files (B/c3a.laz, C/B_3A.laz, D/o-3a.laz, E/a_3a.laz)
+    in multiple directories (B, C, D, E), then the file in the directory with
+    the higher priority is selected over that of lower priority. In this case
+    the file E/a_3a.laz is disregarded. If directories are given in a sublist, such
+    as B, C, D, then they have equal priority. Thus if a tile has a matching
+    file in more than one of these directories, then *all* of the files are used 
+    (B/c3a.laz, C/B_3A.laz, D/o-3a.laz).
+    
+    Tile name and file name matching is case insensitive. Furthermore, the match
+    is governed by the file name patterns provided in 'input_elevation: dataset_name'.
+    
+    
+    Returns
+    -------
+    dict
+        {pc_tile_name: [path to pc_file1, path to pc_file2, ...]}
+    """
+    f_idx = {}
+    pri = []
+    file_index = {}
+    
+    def get_priority(d):
+        return(d[1]['priority'])
+    d_sort = sorted(pc_name_map.items(), key=get_priority)
+    
+    for elem in d_sort:
+        idx = {}
+        name = elem[1]['name']
+        l = name[:name.find('{')]
+        r = name[name.find('}')+1:]
+        reg = '(?<=' + l + ').*(?=' + r + ')'
+        t_pat = re.compile(reg, re.IGNORECASE)
+        for item in os.listdir(elem[0]):
+            path = os.path.join(elem[0], item)
+            if os.path.isfile(path):
+                pc_tile = t_pat.search(item)
+                if pc_tile:
+                    tile = pc_tile.group(0).lower()
+                    idx[tile] = [path]
+        f_idx[elem[0]] = idx
+    # d_sort is [('/some/path', {'name': 'a_{tile}.laz', 'priority': 0}), ...]
+    for d in reversed(d_sort):
+        dirname = d[0]
+        if len(pri) == 0:
+            file_index = f_idx[dirname]
+        else:
+            if pri[-1] == d[1]['priority']:
+                tiles = f_idx[dirname].keys()
+                for t in tiles:
+                    try:
+                        file_index[t] += f_idx[dirname][t]
+                    except KeyError:
+                        file_index[t] = f_idx[dirname][t]
+            else:
+                f = {**file_index, **f_idx[dirname]}
+                file_index = f
+        pri.append(d[1]['priority'])
+    return file_index
 
 
 def find_pc_files(pc_tiles, pc_dir, pc_dataset_name, pc_tile_case):
@@ -277,7 +348,7 @@ def find_pc_tiles(db, table_index_pc, fields_index_pc,
                                     field_ftpr_geom=field_ftpr_geom_q)
 
         resultset = db.getQuery(query)
-        tiles = [tile[0] for tile in resultset]
+        tiles = [tile[0].lower() for tile in resultset]
 
     return(tiles)
 

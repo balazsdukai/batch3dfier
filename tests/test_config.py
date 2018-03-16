@@ -6,6 +6,8 @@ import yaml
 from .context import db
 from .context import config
 
+from pprint import pprint
+
 
 
 @pytest.fixture("module")
@@ -41,6 +43,48 @@ def pointcloud():
                      os.path.abspath('example_data/c_25gn1_b.laz')]
          }
     return(p)
+
+
+@pytest.fixture("module")
+def pc_name_map():
+    d = {'/home/bdukai/Development/batch3dfier/example_data': {
+            'name': 'a_{tile}.laz',
+            'priority': 0},
+        '/home/bdukai/Development/batch3dfier/example_data/ahn1': {
+            'name': 'a_{tile}.laz',
+            'priority': 3},
+        '/home/bdukai/Development/batch3dfier/example_data/ahn2/ground': {
+            'name': 'b_{tile}.laz',
+            'priority': 2},
+        '/home/bdukai/Development/batch3dfier/example_data/ahn2/other': {
+            'name': 'o-{tile}.laz',
+            'priority': 2},
+        '/home/bdukai/Development/batch3dfier/example_data/ahn2/rest': {
+            'name': 'c{tile}.laz',
+            'priority': 2},
+        '/home/bdukai/Development/batch3dfier/example_data/ahn3': {
+            'name': 'a_{tile}.laz',
+            'priority': 1}}
+    return d
+
+
+@pytest.fixture("module")
+def pc_dir():
+    pc_dir = ['/home/bdukai/Development/batch3dfier/example_data',
+          '/home/bdukai/Development/batch3dfier/example_data/ahn3',
+          ['/home/bdukai/Development/batch3dfier/example_data/ahn2/ground',
+           '/home/bdukai/Development/batch3dfier/example_data/ahn2/rest',
+           '/home/bdukai/Development/batch3dfier/example_data/ahn2/other'],
+          '/home/bdukai/Development/batch3dfier/example_data/ahn1']
+    return pc_dir
+
+
+@pytest.fixture("module")
+def pc_dataset_name():
+    dataset_name = ['a_{tile}.laz', 'a_{tile}.laz', 
+                ['b_{tile}.laz', 'c{tile}.laz', 'o-{tile}.laz'],
+                'a_{tile}.laz']
+    return dataset_name
 
 
 # @pytest.fixture("module")
@@ -91,12 +135,9 @@ def test_find_pc_tiles_tile(batch3dfier_db, cfg, tile):
     assert tiles == ['25gn1_a', '25gn1_b']
 
 
-def test_pc_name_dict():
-    dataset_dir = ['a', ['b', 'c'], 'd']
-    dataset_name = ['a_{tile}', ['b{tile}', 'c-{tile}'], 'd_{tile}']
-    d = {'a': 'a_{tile}', 'b': 'b{tile}', 'c': 'c-{tile}', 'd': 'd_{tile}'}
-    pc_dict = config.pc_name_dict(dataset_dir, dataset_name)
-    assert pc_dict == d
+def test_pc_name_dict(pc_name_map, pc_dir, pc_dataset_name):
+    pc_dict = config.pc_name_dict(pc_dir, pc_dataset_name)
+    assert pc_dict == pc_name_map
 
 
 def test_pc_name_dict_err():
@@ -104,6 +145,21 @@ def test_pc_name_dict_err():
     dataset_name = ['a_{tile}', ['b{tile}', ['c-{tile}', 'c1-{tile}']], 'd_{tile}']
     with pytest.raises(ValueError):
         config.pc_name_dict(dataset_dir, dataset_name)
+
+
+def test_pc_file_index(pc_name_map):
+    d = {
+        '1': ['/home/bdukai/Development/batch3dfier/example_data/a_1.laz'],
+        '2': ['/home/bdukai/Development/batch3dfier/example_data/ahn3/a_2.laz'],
+        '3a': ['/home/bdukai/Development/batch3dfier/example_data/ahn2/other/o-3a.laz',
+               '/home/bdukai/Development/batch3dfier/example_data/ahn2/rest/c3a.laz',
+               '/home/bdukai/Development/batch3dfier/example_data/ahn2/ground/B_3A.laz'],
+        '4b': ['/home/bdukai/Development/batch3dfier/example_data/ahn2/ground/B_4B.laz'],
+        '6': ['/home/bdukai/Development/batch3dfier/example_data/ahn2/other/o-6.laz']}
+    pc_file_idx = config.pc_file_index(pc_name_map)
+    pc_vals = set([f for i in pc_file_idx.values() for f in i])
+    d_vals = set([f for i in d.values() for f in i])
+    assert (set(pc_file_idx.keys()) == set(d.keys())) & (pc_vals == d_vals)
 
 
 # def test_format_tile_names():

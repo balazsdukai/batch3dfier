@@ -52,9 +52,7 @@ def add_abspath(dirs_list):
 
 
 def parse_config_yaml(args_in):
-    # =========================================================================
-    # User input and Settings
-    # =========================================================================
+    """Process the config YAML to internal format"""
     cfg = {}
 
     stream = open(args_in['cfg_file'], "r")
@@ -134,6 +132,8 @@ def main():
     cfg = parse_config_yaml(args_in)
     dbase = cfg['dbase']
     tiles = cfg['tiles']
+    pc_name_map = config.pc_name_dict(cfg['pc_dir'], cfg['pc_dataset_name'])
+    pc_file_idx = config.pc_file_index(pc_name_map)
 
     logfile = os.path.join(cfg['output_dir'], 'batch3dfier.log')
     logging.basicConfig(filename=logfile,
@@ -248,7 +248,8 @@ def main():
                     output_format=cfg['output_format'],
                     output_dir=cfg['output_dir'],
                     path_3dfier=cfg['path_3dfier'],
-                    thread=threadName)
+                    thread=threadName,
+                    pc_file_index=pc_file_idx)
                 if t['tile_skipped'] is not None:
                     tiles_skipped.append(t['tile_skipped'])
                 else:
