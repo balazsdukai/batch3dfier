@@ -61,7 +61,7 @@ def parse_config_yaml(args_in):
     cfg['pc_dataset_name'] = cfg_stream["input_elevation"]["dataset_name"]
     cfg['pc_dir'] = add_abspath(
         cfg_stream["input_elevation"]["dataset_dir"])
-    cfg['pc_tile_case'] = cfg_stream["input_elevation"]["tile_case"]
+#     cfg['pc_tile_case'] = cfg_stream["input_elevation"]["tile_case"]
     cfg['polygons'] = cfg_stream['tile_index']['polygons']
     cfg['elevation'] = cfg_stream['tile_index']['elevation']
 
@@ -232,9 +232,6 @@ def main():
                     db=dbase,
                     tile=tile,
                     schema_tiles=cfg['user_schema'],
-                    pc_dataset_name=cfg['pc_dataset_name'],
-                    pc_tile_case=cfg['pc_tile_case'],
-                    pc_dir=cfg['pc_dir'],
                     table_index_pc=cfg['elevation'],
                     fields_index_pc=cfg['elevation']['fields'],
                     table_index_footprint=cfg['polygons'],

@@ -22,10 +22,8 @@ def test_parse_config_yaml_1():
         'path_3dfier': '/home/bdukai/Development/3dfier/build/3dfier',
         'pc_dir': ['/home/bdukai/Development/batch3dfier/example_data/ahn3',
                    ['/home/bdukai/Development/batch3dfier/example_data/ahn2/ground',
-                     '/home/bdukai/Development/batch3dfier/example_data/ahn2/rest']
-                   ],
-        'pc_dataset_name': 'c_{tile}.laz',
-        'pc_tile_case': 'lower',
+                    '/home/bdukai/Development/batch3dfier/example_data/ahn2/rest']],
+        'pc_dataset_name': ['c_{tile}.laz', ['g{tile}.laz', 'u{tile}.laz']],
         'polygons': {
             'fields': {
                 'geometry': 'geom',

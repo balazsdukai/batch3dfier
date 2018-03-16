@@ -2,7 +2,7 @@
 database:
     dbname: 'batch3dfier_db'
     host: 'localhost'
-    port: '5432'
+    port: '5433'
     user: 'batch3dfier'
     pw: 'batch3d_test'
 
@@ -22,7 +22,7 @@ input_elevation:
         - ['/home/bdukai/Development/batch3dfier/example_data/ahn2/ground', '/home/bdukai/Development/batch3dfier/example_data/ahn2/rest']
     # naming convention for the pointcloud files
     dataset_name: ['c_{tile}.laz', ['g{tile}.laz', 'u{tile}.laz']]
-    tile_case: ['lower', ['lower', 'lower']]
+    #tile_case: ['lower', ['lower', 'lower']]
     # tile_case controls how the string matching is done for {tile} in order to
     # find the input_elevation files in dataset_dir. Allowed are 
     # 'upper' (e.g. C_25GN1_filtered.LAZ),

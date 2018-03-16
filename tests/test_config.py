@@ -165,22 +165,22 @@ def test_pc_file_index(pc_name_map):
 # def test_format_tile_names():
 #     res = config.format_tile_name(pc_tiles, pc_dataset_name, pc_tile_case)
 
-def test_find_pc_files(pointcloud):
-    pc_path = config.find_pc_files(pointcloud['pc_tiles'],
-                                   pointcloud['dataset_dir'],
-                                   pointcloud['dataset_name'],
-                                   pointcloud['tile_case'])
-
-    assert pc_path == pointcloud['pc_path']
-
-
-def test_find_pc_files_none(pointcloud):
-    pc_path = config.find_pc_files(pointcloud['pc_tiles'],
-                                   pointcloud['dataset_dir'],
-                                   pointcloud['dataset_name'],
-                                   "upper")
-
-    assert pc_path is None
+# def test_find_pc_files(pointcloud):
+#     pc_path = config.find_pc_files(pointcloud['pc_tiles'],
+#                                    pointcloud['dataset_dir'],
+#                                    pointcloud['dataset_name'],
+#                                    pointcloud['tile_case'])
+# 
+#     assert pc_path == pointcloud['pc_path']
+# 
+# 
+# def test_find_pc_files_none(pointcloud):
+#     pc_path = config.find_pc_files(pointcloud['pc_tiles'],
+#                                    pointcloud['dataset_dir'],
+#                                    pointcloud['dataset_name'],
+#                                    "upper")
+# 
+#     assert pc_path is None
 
 
 def test_yamlr(batch3dfier_db, pointcloud, tile):

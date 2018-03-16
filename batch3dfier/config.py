@@ -13,7 +13,6 @@ import fiona
 
 
 def call_3dfier(db, tile, schema_tiles,
-                pc_dataset_name, pc_tile_case, pc_dir,
                 table_index_pc, fields_index_pc,
                 table_index_footprint, fields_index_footprint, uniqueid,
                 extent_ewkb, clip_prefix, prefix_tile_footprint,
@@ -33,12 +32,6 @@ def call_3dfier(db, tile, schema_tiles,
         Name of of the 2D tile.
     schema_tiles : str
         Schema of the footprint tiles.
-    pc_dataset_name : str
-        Naming convention for the pointcloud files. See 'dataset_name' in batch3dfier_config.yml.
-    pc_tile_case : str
-        How the string matching is done for pc_dataset_name. See 'tile_case' in batch3dfier_config.yml.
-    pc_dir : str
-        Directory of the pointcloud files. See 'dataset_dir' in batch3dfier_config.yml.
     thread : str
         Name/ID of the active thread.
     extent_ewkb : str
@@ -264,33 +257,33 @@ def pc_file_index(pc_name_map):
     return file_index
 
 
-def find_pc_files(pc_tiles, pc_dir, pc_dataset_name, pc_tile_case):
-    """Find pointcloud files in the file system when given a list of pointcloud tile names
-    """
-    tiles = format_tile_name(pc_tiles, pc_dataset_name, pc_tile_case)
-    
-    # use the tile list in tiles to parse the pointcloud file names
-    pc_path = [os.path.join(pc_dir, pc_tile) for pc_tile in tiles]
-
-    if all([os.path.isfile(p) for p in pc_path]):
-        return(pc_path)
-    else:
-        return(None)
-
-
-def format_tile_name(pc_tiles, pc_dataset_name, pc_tile_case):
-    """Format the tile names according to input_elvation:dataset_name and :tile_case"""
-        # Prepare AHN file names -------------------------------------------------
-    if pc_tile_case == "upper":
-        tiles = [pc_dataset_name.format(tile=t.upper()) for t in pc_tiles]
-    elif pc_tile_case == "lower":
-        tiles = [pc_dataset_name.format(tile=t.lower()) for t in pc_tiles]
-    elif pc_tile_case == "mixed":
-        tiles = [pc_dataset_name.format(tile=t) for t in pc_tiles]
-    else:
-        raise "Please provide one of the allowed values for pc_tile_case."
-    
-    return tiles
+# def find_pc_files(pc_tiles, pc_dir, pc_dataset_name, pc_tile_case):
+#     """Find pointcloud files in the file system when given a list of pointcloud tile names
+#     """
+#     tiles = format_tile_name(pc_tiles, pc_dataset_name, pc_tile_case)
+#     
+#     # use the tile list in tiles to parse the pointcloud file names
+#     pc_path = [os.path.join(pc_dir, pc_tile) for pc_tile in tiles]
+# 
+#     if all([os.path.isfile(p) for p in pc_path]):
+#         return(pc_path)
+#     else:
+#         return(None)
+# 
+# 
+# def format_tile_name(pc_tiles, pc_dataset_name, pc_tile_case):
+#     """Format the tile names according to input_elvation:dataset_name and :tile_case"""
+#         # Prepare AHN file names -------------------------------------------------
+#     if pc_tile_case == "upper":
+#         tiles = [pc_dataset_name.format(tile=t.upper()) for t in pc_tiles]
+#     elif pc_tile_case == "lower":
+#         tiles = [pc_dataset_name.format(tile=t.lower()) for t in pc_tiles]
+#     elif pc_tile_case == "mixed":
+#         tiles = [pc_dataset_name.format(tile=t) for t in pc_tiles]
+#     else:
+#         raise "Please provide one of the allowed values for pc_tile_case."
+#     
+#     return tiles
 
 
 def find_pc_tiles(db, table_index_pc, fields_index_pc,
