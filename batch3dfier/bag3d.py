@@ -1,7 +1,20 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-"""Generate a 3D BAG data set. Linux only."""
+"""Generate a 3D BAG data set.
+
+It processes the CSV output from 3dfier (CSV-BUILDINGS-MULTIPLE) and imports
+the data back to the database. Finally, combines the BAG building (pand)
+footprint geometry and attributes with the height values from the CSV and info
+about the respective AHN tile (file date and AHN version). The result is the
+<bag schema>.bag3d table containing all the mentioned fields, therefore it
+duplicates the BAG pand table.
+Only works when the AHN3 and BAG tiles have the same size and identifier. That
+is, because 3dfier outputs a CSV per BAG tile, then the bag3d module assigns
+a single AHN date and version to the whole CSV, based on the tile ID that is 
+part of the CSV file name. This ID should have a match among the AHN tiles.
+Works in Linux only, due to the use of gawk and sed.
+"""
 
 import os.path
 from subprocess import run
@@ -27,7 +40,7 @@ def create_heights_table(db, schema, table):
     table_q = sql.Identifier(table)
     query = sql.SQL("""
     CREATE TABLE IF NOT EXISTS {schema}.{table} (
-        id numeric,
+        id bigint,
         "ground-0.00" real,
         "ground-0.10" real,
         "ground-0.20" real,
@@ -42,7 +55,8 @@ def create_heights_table(db, schema, table):
         "roof-0.90" real,
         "roof-0.95" real,
         "roof-0.99" real,
-        ahn_file_date timestamptz
+        ahn_file_date timestamptz,
+        ahn_version smallint
         );
     """).format(schema=schema_q, table=table_q)
     try:
@@ -61,7 +75,7 @@ def csv2db(db, cfg, out_paths):
     Only for 3dfier's CSV-BUILDINGS-MULTIPLE output. 
     Only works when the AHN3 and BAG tiles are the same (same size and identifier). 
     Only Linux.
-    Alter the CSV files by adding the ahn_file_date field and values.
+    Alter the CSV files by adding the ahn_file_date, ahn_version fields and values.
     
     Parameters
     ----------
@@ -87,13 +101,13 @@ def csv2db(db, cfg, out_paths):
     with db.conn:
         with db.conn.cursor() as cur:
             tbl = ".".join([cfg['out_schema'], cfg['out_table']])
-            for p in out_paths:
-                csv_file = os.path.split(p)[1]
+            for path in out_paths:
+                csv_file = os.path.split(path)[1]
                 fname = os.path.splitext(csv_file)[0]
                 tile = fname.replace(cfg['prefix_tile_footprint'], '', 1)
                 tile_q = sql.Literal(tile)
                 
-                query = sql.SQL("""SELECT file_date
+                query = sql.SQL("""SELECT file_date, ahn_version
                                     FROM {schema}.{table}
                                     WHERE {unit_name} = {tile};
                                 """).format(schema=schema_pc_q,
@@ -104,21 +118,24 @@ def csv2db(db, cfg, out_paths):
                 resultset = cur.fetchall()
                 # the AHN3 file creation date that is stored in the tile index
                 ahn_file_date = resultset[0][0].isoformat()
+                ahn_version = resultset[0][1]
                 
                 # Need to do some linux text-fu so that the whole csv file can
                 # be imported with COPY instead of row-wise edit and import
                 # in python (suuuper slow)
                 # Watch out for trailing commas from the CSV (until #58 is fixed in 3dfier)
-                command = "gawk -i inplace -F',' \
-                'BEGIN { OFS = \",\" } {$16=\"%s\"; print}' %s" % (ahn_file_date, p)
-                run(command, shell=True)
-                command = "sed -i '1s/.*/id,ground-0.00,ground-0.10,ground-0.20,\
+                cmd_add_ahn = "gawk -i inplace -F',' 'BEGIN { OFS = \",\" } {$16=\"%s,%s\"; print}' %s" % (
+                    ahn_file_date, 
+                    ahn_version,
+                    path)
+                run(cmd_add_ahn, shell=True)
+                cmd_header = "sed -i '1s/.*/id,ground-0.00,ground-0.10,ground-0.20,\
                 ground-0.30,ground-0.40,ground-0.50,roof-0.00,roof-0.10,\
                 roof-0.25,roof-0.50,roof-0.75,roof-0.90,roof-0.95,roof-0.99,\
-                ahn_file_date/' %s" % p
-                run(command, shell=True)
+                ahn_file_date,ahn_version/' %s" % path
+                run(cmd_header, shell=True)
                 
-                with open(p, "r") as f_in:
+                with open(path, "r") as f_in:
                     next(f_in) # skip header
                     cur.copy_from(f_in, tbl, sep=',')
                     
@@ -144,7 +161,7 @@ def create_bag3d_relations(db):
     CREATE TABLE bagactueel.bag3d AS
     SELECT
         p.gid,
-        p.identificatie::numeric,
+        p.identificatie::bigint,
         p.aanduidingrecordinactief,
         p.aanduidingrecordcorrectie,
         p.officieel,
@@ -170,7 +187,8 @@ def create_bag3d_relations(db):
         h."roof-0.90",
         h."roof-0.95",
         h."roof-0.99",
-        h.ahn_file_date
+        h.ahn_file_date,
+        h.ahn_version
     FROM bagactueel.pandactueelbestaand p
     INNER JOIN bagactueel.heights h ON p.identificatie::numeric = h.id;
     """)
@@ -227,7 +245,8 @@ def export_csv(cur, csv_out):
         "roof-0.90",
         "roof-0.95",
         "roof-0.99",
-        ahn_file_date
+        ahn_file_date,
+        ahn_version
     FROM bagactueel.bag3d)
     TO STDOUT
     WITH (FORMAT 'csv', HEADER TRUE, ENCODING 'utf-8')""")
