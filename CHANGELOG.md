@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.8.0]
+### Changed
+- use a tile-file index instead of traversing the directories all the time
+- the case (upper/lower) of the point cloud files and tiles is not relevant anymore, everything is matched in lowercase
+
+### Added
+- now possible use point cloud files from multiple directories
+- `bag3d` output includes the AHN version
+
 ## [0.7.1] - 2018-02-08
 ### Changed
 - CSV output from postgres table instead of union of CSV files
