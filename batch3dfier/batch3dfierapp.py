@@ -4,7 +4,8 @@
 """The batch3dfier application."""
 
 
-import os.path
+import os
+import sys
 import queue
 import threading
 import time
@@ -15,9 +16,17 @@ import logging
 
 import yaml
 from psycopg2 import sql
+from pprint import pformat
 
 from batch3dfier import config
 from batch3dfier import db
+
+
+logfile = os.path.join(os.getcwd(), 'batch3dfier.log')
+logging.basicConfig(filename=logfile,
+                    filemode='w',
+                    level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def parse_console_args():
@@ -135,12 +144,6 @@ def main():
     pc_name_map = config.pc_name_dict(cfg['pc_dir'], cfg['pc_dataset_name'])
     pc_file_idx = config.pc_file_index(pc_name_map)
 
-    logfile = os.path.join(cfg['output_dir'], 'batch3dfier.log')
-    logging.basicConfig(filename=logfile,
-                        filemode='a',
-                        level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s')
-
     # =========================================================================
     # Get tile list if 'extent' provided
     # =========================================================================
@@ -196,6 +199,7 @@ def main():
         else:
             tile_views = config.get_2Dtile_views(dbase, cfg['tile_schema'],
                                                  tiles)
+            
 
     else:
         TypeError("Please provide either 'extent' or 'tile_list' in config.")
@@ -203,6 +207,15 @@ def main():
     # Process multiple threads
     # reference: http://www.tutorialspoint.com/python3/python_multithreading.htm
     # =========================================================================
+    logging.debug("tile_views: %s", tile_views)
+    logging.debug("pc_file_idx: %s", pformat(pc_file_idx))
+    
+    if len(tile_views) == 0:
+        logging.error("I was unable to retrieve any tile views")
+        dbase.close()
+        sys.exit(1)
+    else:
+        pass
 
     exitFlag = 0
     tiles_skipped = []
@@ -217,9 +230,7 @@ def main():
             self.q = q
 
         def run(self):
-            print("Starting " + self.name)
             process_data(self.name, self.q)
-            print("Exiting " + self.name)
 
     def process_data(threadName, q):
         while not exitFlag:
@@ -227,7 +238,7 @@ def main():
             if not workQueue.empty():
                 tile = q.get()
                 queueLock.release()
-                print("%s processing %s" % (threadName, tile))
+                logging.debug("%s processing %s" % (threadName, tile))
                 t = config.call_3dfier(
                     db=dbase,
                     tile=tile,
@@ -272,16 +283,14 @@ def main():
     # Fill the queue
     queueLock.acquire()
     if union_view:
-        #         print("union_view is", union_view)
         workQueue.put(union_view)
     elif tiles_clipped:
-        #         print("tiles_clipped is", tiles_clipped)
         for tile in tiles_clipped:
             workQueue.put(tile)
     else:
-        #         print("tile_views is", tile_views)
         for tile in tile_views:
             workQueue.put(tile)
+
     queueLock.release()
 
     # Wait for queue to empty
@@ -294,7 +303,6 @@ def main():
     # Wait for all threads to complete
     for t in threads:
         t.join()
-    print("Exiting Main Thread")
 
     # Drop temporary views that reference the clipped extent
     if union_view:
@@ -316,6 +324,8 @@ def main():
     for c in yml_cfg:
         command = command + " " + c
     call(command, shell=True)
+    
+    dbase.close()
 
     # =========================================================================
     # Reporting

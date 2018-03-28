@@ -10,6 +10,7 @@ from shapely.geometry import shape
 from shapely import geos
 from psycopg2 import sql
 import fiona
+import logging
 
 
 def call_3dfier(db, tile, schema_tiles,
@@ -53,9 +54,10 @@ def call_3dfier(db, tile, schema_tiles,
                              table_index_footprint, fields_index_footprint,
                              extent_ewkb, tile_footprint=tile,
                              prefix_tile_footprint=prefix_tile_footprint)
-
+    logging.debug("call_3dfier:pc_tiles: %s", pc_tiles)
 #     pc_path = find_pc_files(pc_tiles, pc_dir, pc_dataset_name, pc_tile_case)
     pc_path = [t for tile in pc_tiles for t in pc_file_index[tile]]
+    logging.debug("call_3dfier:pc_path: %s", pc_path)
 
     # prepare output file name
     if not tile_out:
@@ -76,8 +78,8 @@ def call_3dfier(db, tile, schema_tiles,
         try:
             with open(yml_path, "w") as text_file:
                 text_file.write(config)
-        except BaseException:
-            print("Error: cannot write _config.yml")
+        except BaseException as e:
+            logging.exception("Error: cannot write _config.yml")
         # Prep output file name
         if "obj" in output_format.lower():
             o = tile_out + ".obj"
@@ -92,11 +94,11 @@ def call_3dfier(db, tile, schema_tiles,
             yml=yml_path, out=output_path)
         try:
             call(command, shell=True)
-        except BaseException:
-            print("\nCannot run 3dfier on tile " + tile)
+        except BaseException as e:
+            logging.exception("\nCannot run 3dfier on tile " + tile)
             tile_skipped = tile
     else:
-        print(
+        logging.debug(
             "\nPointcloud file(s) " +
             str(pc_tiles) +
             " not available. Skipping tile.\n")

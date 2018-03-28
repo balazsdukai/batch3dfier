@@ -3,7 +3,7 @@
 """Database connection class."""
 
 import psycopg2
-
+import logging
 
 class db(object):
     """A database connection class """
@@ -19,9 +19,9 @@ class db(object):
                 "dbname=%s host=%s port=%s \
                                           user=%s password=%s" %
                 (dbname, host, port, user, password))
-            print("Opened database successfully")
-        except BaseException:
-            print("I'm unable to connect to the database. Exiting function.")
+            logging.debug("Opened database successfully")
+        except BaseException as e:
+            logging.exception("I'm unable to connect to the database. Exiting function.")
 
     def sendQuery(self, query):
         """Send a query to the DB when no results need to return (e.g. CREATE)
@@ -83,5 +83,6 @@ class db(object):
         self.sendQuery(query)
 
     def close(self):
-        """ """
+        """Close connection"""
         self.conn.close()
+        logging.debug("Closed database successfuly")
