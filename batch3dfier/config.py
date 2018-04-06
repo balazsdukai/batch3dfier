@@ -431,7 +431,7 @@ def get_2Dtiles(db, table_index, fields_index, ewkb):
     resultset = db.getQuery(query)
     tiles = [tile[0] for tile in resultset]
 
-    print("Nr. of tiles in clip extent: " + str(len(tiles)))
+    logging.debug("Nr. of tiles in clip extent: " + str(len(tiles)))
 
     return(tiles)
 
@@ -486,8 +486,8 @@ def get_2Dtile_views(db, schema_tiles, tiles):
 
     """
     # Get View names for the tiles
-    t = ["%" + str(tile) + "%" for tile in tiles]
-    t = sql.Literal(t)
+    tstr = ["%" + str(tile) + "%" for tile in tiles]
+    t = sql.Literal(tstr)
     schema_tiles = sql.Literal(schema_tiles)
     query = sql.SQL("""SELECT table_name
                         FROM information_schema.views
@@ -496,8 +496,11 @@ def get_2Dtile_views(db, schema_tiles, tiles):
                         """).format(schema_tiles, t)
     resultset = db.getQuery(query)
     tile_views = [tile[0] for tile in resultset]
-
-    return(tile_views)
+    if tile_views:
+        return tile_views
+    else:
+        logging.error("get_2Dtile_views returned None with %s", 
+                      query.as_string(db.conn))
 
 
 def clip_2Dtiles(db, user_schema, schema_tiles, tiles, poly, clip_prefix,

@@ -24,7 +24,7 @@ from batch3dfier import db
 
 logfile = os.path.join(os.getcwd(), 'batch3dfier.log')
 logging.basicConfig(filename=logfile,
-                    filemode='w',
+                    filemode='a',
                     level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -64,8 +64,12 @@ def parse_config_yaml(args_in):
     """Process the config YAML to internal format"""
     cfg = {}
 
-    stream = open(args_in['cfg_file'], "r")
-    cfg_stream = yaml.load(stream)
+    try:
+        stream = open(args_in['cfg_file'], "r")
+        cfg_stream = yaml.load(stream)
+    except FileNotFoundError as e:
+        logging.exception("Config file not found at %s", args_in['cfg_file'])
+        sys.exit(1)
 
     cfg['pc_dataset_name'] = cfg_stream["input_elevation"]["dataset_name"]
     cfg['pc_dir'] = add_abspath(
@@ -199,7 +203,13 @@ def main():
         else:
             tile_views = config.get_2Dtile_views(dbase, cfg['tile_schema'],
                                                  tiles)
-            
+        
+        if not tile_views or len(tile_views) == 0:
+            print("There was an error, see the logfile")
+            dbase.close()
+            sys.exit(1)
+        else:
+            pass
 
     else:
         TypeError("Please provide either 'extent' or 'tile_list' in config.")
@@ -209,13 +219,7 @@ def main():
     # =========================================================================
     logging.debug("tile_views: %s", tile_views)
     logging.debug("pc_file_idx: %s", pformat(pc_file_idx))
-    
-    if len(tile_views) == 0:
-        logging.error("I was unable to retrieve any tile views")
-        dbase.close()
-        sys.exit(1)
-    else:
-        pass
+
 
     exitFlag = 0
     tiles_skipped = []
