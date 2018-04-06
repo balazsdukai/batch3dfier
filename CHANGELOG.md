@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - use a tile-file index instead of traversing the directories all the time
 - the case (upper/lower) of the point cloud files and tiles is not relevant anymore, everything is matched in lowercase
+- 3dfier value '-99.99' that encodes missing height information is translated as actual missing value to the output
 
 ### Added
 - now possible use point cloud files from multiple directories

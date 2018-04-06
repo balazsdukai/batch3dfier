@@ -16,14 +16,14 @@ part of the CSV file name. This ID should have a match among the AHN tiles.
 Works in Linux only, due to the use of gawk and sed.
 """
 
-import os.path
+import os
+import sys
 from subprocess import run
 
-import os.path as path
-from os import walk
 import argparse
 from psycopg2 import sql
 import datetime
+import logging
 
 from batch3dfier.batch3dfierapp import parse_config_yaml
 
@@ -61,10 +61,12 @@ def create_heights_table(db, schema, table):
     """).format(schema=schema_q, table=table_q)
     try:
         db.sendQuery(query)
-        print("Created heights table")
-        return(True)
+        logging.debug("Created heights table")
+        return True
     except:
-        return(False)
+        logging.error(query.as_string(db.conn))
+        sys.exit(1)
+        return False
 
 
 def csv2db(db, cfg, out_paths):
@@ -96,62 +98,70 @@ def csv2db(db, cfg, out_paths):
     
     table_idx = sql.Identifier(cfg['out_schema'] + "_id_idx")
     
-    create_heights_table(db, cfg['out_schema'],
-                                cfg['out_table'])
-    with db.conn:
-        with db.conn.cursor() as cur:
-            tbl = ".".join([cfg['out_schema'], cfg['out_table']])
-            for path in out_paths:
-                csv_file = os.path.split(path)[1]
-                fname = os.path.splitext(csv_file)[0]
-                tile = fname.replace(cfg['prefix_tile_footprint'], '', 1)
-                tile_q = sql.Literal(tile)
-                
-                query = sql.SQL("""SELECT file_date, ahn_version
-                                    FROM {schema}.{table}
-                                    WHERE {unit_name} = {tile};
-                                """).format(schema=schema_pc_q,
-                                           table=table_pc_q,
-                                           unit_name=field_pc_unit_q,
-                                           tile=tile_q)
-                cur.execute(query)
-                resultset = cur.fetchall()
-                # the AHN3 file creation date that is stored in the tile index
-                ahn_file_date = resultset[0][0].isoformat()
-                ahn_version = resultset[0][1]
-                
-                # Need to do some linux text-fu so that the whole csv file can
-                # be imported with COPY instead of row-wise edit and import
-                # in python (suuuper slow)
-                # Watch out for trailing commas from the CSV (until #58 is fixed in 3dfier)
-                cmd_add_ahn = "gawk -i inplace -F',' 'BEGIN { OFS = \",\" } {$16=\"%s,%s\"; print}' %s" % (
-                    ahn_file_date, 
-                    ahn_version,
-                    path)
-                run(cmd_add_ahn, shell=True)
-                cmd_header = "sed -i '1s/.*/id,ground-0.00,ground-0.10,ground-0.20,\
-                ground-0.30,ground-0.40,ground-0.50,roof-0.00,roof-0.10,\
-                roof-0.25,roof-0.50,roof-0.75,roof-0.90,roof-0.95,roof-0.99,\
-                ahn_file_date,ahn_version/' %s" % path
-                run(cmd_header, shell=True)
-                
-                with open(path, "r") as f_in:
-                    next(f_in) # skip header
-                    cur.copy_from(f_in, tbl, sep=',')
+    a = create_heights_table(db, cfg['out_schema'], cfg['out_table'])
+    
+    if a:
+        with db.conn:
+            with db.conn.cursor() as cur:
+                tbl = ".".join([cfg['out_schema'], cfg['out_table']])
+                for path in out_paths:
+                    csv_file = os.path.split(path)[1]
+                    fname = os.path.splitext(csv_file)[0]
+                    tile = fname.replace(cfg['prefix_tile_footprint'], '', 1)
+                    tile_q = sql.Literal(tile)
                     
-    db.sendQuery(
-        sql.SQL("""CREATE INDEX {table}
-                ON {schema_q}.{table_q} (id);
-                """).format(schema_q=schema_out_q,
-                            table_q=table_out_q,
-                            table=table_idx)
-    )
-    db.sendQuery(
-        sql.SQL("""COMMENT ON TABLE {schema}.{table} IS
-                'Building heights generated with 3dfier.';
-                """).format(schema=schema_out_q,
-                           table=table_out_q)
-    )
+                    query = sql.SQL("""SELECT file_date, ahn_version
+                                        FROM {schema}.{table}
+                                        WHERE {unit_name} = {tile};
+                                    """).format(schema=schema_pc_q,
+                                               table=table_pc_q,
+                                               unit_name=field_pc_unit_q,
+                                               tile=tile_q)
+                    cur.execute(query)
+                    resultset = cur.fetchall()
+                    # the AHN3 file creation date that is stored in the tile index
+                    if resultset[0][0] and resultset[0][1]:
+                        ahn_file_date = resultset[0][0].isoformat()
+                        ahn_version = resultset[0][1]
+                    else:
+                        ahn_file_date = -99.99
+                        ahn_version = -99.99
+                    
+                    # Need to do some linux text-fu so that the whole csv file can
+                    # be imported with COPY instead of row-wise edit and import
+                    # in python (suuuper slow)
+                    # Watch out for trailing commas from the CSV (until #58 is fixed in 3dfier)
+                    cmd_add_ahn = "gawk -i inplace -F',' 'BEGIN { OFS = \",\" } {$16=\"%s,%s\"; print}' %s" % (
+                        ahn_file_date, 
+                        ahn_version,
+                        path)
+                    run(cmd_add_ahn, shell=True)
+                    cmd_header = "sed -i '1s/.*/id,ground-0.00,ground-0.10,ground-0.20,\
+ground-0.30,ground-0.40,ground-0.50,roof-0.00,roof-0.10,\
+roof-0.25,roof-0.50,roof-0.75,roof-0.90,roof-0.95,roof-0.99,\
+ahn_file_date,ahn_version/' %s" % path
+                    run(cmd_header, shell=True)
+                    
+                    with open(path, "r") as f_in:
+                        next(f_in) # skip header
+                        cur.copy_from(f_in, tbl, sep=',', null='-99.99')
+                        
+        db.sendQuery(
+            sql.SQL("""CREATE INDEX {table}
+                    ON {schema_q}.{table_q} (id);
+                    """).format(schema_q=schema_out_q,
+                                table_q=table_out_q,
+                                table=table_idx)
+        )
+        db.sendQuery(
+            sql.SQL("""COMMENT ON TABLE {schema}.{table} IS
+                    'Building heights generated with 3dfier.';
+                    """).format(schema=schema_out_q,
+                               table=table_out_q)
+        )
+    else:
+        logging.error("csv2db: exit because create_heights_table returned False")
+        sys.exit(1)
 
 
 def create_bag3d_relations(db):
@@ -384,18 +394,24 @@ def main():
 
     args = parser.parse_args()
     args_in = {}
-    args_in['csv_dir'] = path.abspath(args.d)
-    args_in['out_dir'] = path.abspath(args.o)
+    args_in['csv_dir'] = os.path.abspath(args.d)
+    args_in['out_dir'] = os.path.abspath(args.o)
     args_in['rm'] = args.rm
     args_in["cfg_file"] = args.c
     
     cfg = parse_config_yaml(args_in)
 
     # Get CSV files in dir
-    for root, dir, filenames in walk(args_in['csv_dir'], topdown=True):
-        csv_files = [f for f in filenames if path.splitext(f)[1].lower() == ".csv"]
-        out_paths = [path.join(args_in['csv_dir'], f) for f in csv_files]
-    print("There are {} CSV files in the directory".format(len(csv_files)))
+    for root, dir, filenames in os.walk(args_in['csv_dir'], topdown=True):
+        csv_files = [f for f in filenames if os.path.splitext(f)[1].lower() == ".csv"]
+        out_paths = [os.path.join(args_in['csv_dir'], f) for f in csv_files]
+    try:
+        logging.debug("out_paths: %s", out_paths)
+        logging.info("There are {} CSV files in the directory".format(len(csv_files)))
+    except UnboundLocalError as e:
+        logging.exception("Couln't find any CSVs in %s", args_in['csv_dir'])
+        sys.exit(1)
+
 
     csv2db(cfg['dbase'], cfg, out_paths)
     
@@ -404,7 +420,11 @@ def main():
     export_bag3d(cfg['dbase'], args_in['out_dir'])
     
     if args_in['rm']:
-        run(["rm", "-r", args_in['csv_dir']])
+        p = os.path.join(args_in['csv_dir'], "*.csv")
+        cmd = " ".join("rm", p)
+        run(cmd, shell=True)
+    
+    cfg['dbase'].close()
     
     # report how many files were created and how many tiles are there
 
