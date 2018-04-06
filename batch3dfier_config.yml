@@ -13,24 +13,15 @@ input_polygons:
     tile_prefix: 't_' # Prefix prepended to the footprint tile view names. If blank, its assumed that the views are named as the values in field referenced by tile_index:elevation:fields:unit_name
     uniqueid: 'identification'
     extent: '/home/bdukai/Development/batch3dfier/example_data/extent_small.geojson' #/home/bdukai/Development/3dfier_csv/temp/area1.geojson # The polygon for clipping the input
-    tile_list: # ['t_25gn1_c1', 't_25gn1_c2', 't_25gn1_c3', 't_25gn1_c4'] # list of tile IDs as they are in tile_schema | [all] to use all IDs in tile_index
+    tile_list: # ['25gn1_c1', '25gn1_c2', '25gn1_c3', '25gn1_c4'] # list of tile IDs as they are in tile_schema | [all] to use all IDs in tile_index
 
 input_elevation:
     # location of pointcloud files
     dataset_dir:
-        - '/home/bdukai/Development/batch3dfier/example_data/ahn3'
-        - ['/home/bdukai/Development/batch3dfier/example_data/ahn2/ground', '/home/bdukai/Development/batch3dfier/example_data/ahn2/rest']
+        - '/example_data/ahn3'
+        - ['/example_data/ahn2/ground', '/example_data/ahn2/rest']
     # naming convention for the pointcloud files
     dataset_name: ['c_{tile}.laz', ['g{tile}.laz', 'u{tile}.laz']]
-    #tile_case: ['lower', ['lower', 'lower']]
-    # tile_case controls how the string matching is done for {tile} in order to
-    # find the input_elevation files in dataset_dir. Allowed are 
-    # 'upper' (e.g. C_25GN1_filtered.LAZ),
-    # 'lower' (e.g. C_25gn1_filtered.LAZ),
-    # 'mixed' (e.g. C_25Gn1_filtered.LAZ). In case of 'mixed', the values of 
-    # the input_polygons tile ID (e.g. what is provided for tile_list) should
-    # match exactly the {tile} in dataset_name.
-    # For the code see call3dfier()
 
 tile_index:
     polygons:
@@ -52,8 +43,8 @@ tile_index:
 output:
     format: 'CSV-BUILDINGS-MULTIPLE' # OBJ # CSV-BUILDINGS-MULTIPLE
     dir: '/home/bdukai/Data/3DBAG'
-    schema: 
-    table: 
+    schema: 'bagactueel'
+    table: 'heights'
 
 path_3dfier: '/home/bdukai/Development/3dfier/build/3dfier' # location of the 3dfier executable
 
