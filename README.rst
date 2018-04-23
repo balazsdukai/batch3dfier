@@ -13,7 +13,7 @@ This Python program helps you to create 3D models of LoD1 from massive data sets
 
 The software `3dfier <https://github.com/tudelft3d/3dfier>`__ is the heart of *batch3dfier*, where *batch3dfier* adds a tiling framework, allowing to scale to an arbitrary size of input data set.
 
-As of version 0.7.0 *batch3dfier*:
+As of version 0.8.0 *batch3dfier*:
 
 -   Can 3dfy 2D footprints (polygons) that are on a single *layer*, in this case, a single database table (e.g. building footprints).
 

@@ -5,16 +5,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
-## [0.8.0]
 ### Changed
 - use a tile-file index instead of traversing the directories all the time
 - the case (upper/lower) of the point cloud files and tiles is not relevant anymore, everything is matched in lowercase
 - 3dfier value '-99.99' that encodes missing height information is translated as actual missing value to the output
 
 ### Added
-- now possible use point cloud files from multiple directories
+- now possible use point cloud files from multiple directories, however this feature depends on [#61](https://github.com/tudelft3d/3dfier/issues/61)
 - `bag3d` output includes the AHN version
+- Dockerfile for postgres10 development DB
 
 ## [0.7.1] - 2018-02-08
 ### Changed
