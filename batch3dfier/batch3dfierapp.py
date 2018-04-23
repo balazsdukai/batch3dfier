@@ -4,7 +4,8 @@
 """The batch3dfier application."""
 
 
-import os.path
+import os
+import sys
 import queue
 import threading
 import time
@@ -15,9 +16,17 @@ import logging
 
 import yaml
 from psycopg2 import sql
+from pprint import pformat
 
 from batch3dfier import config
 from batch3dfier import db
+
+
+logfile = os.path.join(os.getcwd(), 'batch3dfier.log')
+logging.basicConfig(filename=logfile,
+                    filemode='a',
+                    level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def parse_console_args():
@@ -41,19 +50,31 @@ def parse_console_args():
     return(args_in)
 
 
+def add_abspath(dirs_list):
+    """Recursively append the absolute path to the paths in a nested list"""
+    for i, elem in enumerate(dirs_list):
+        if isinstance(elem, str):
+            dirs_list[i] = os.path.abspath(elem)
+        else:
+            dirs_list[i] = add_abspath(elem)
+    return dirs_list
+
+
 def parse_config_yaml(args_in):
-    # =========================================================================
-    # User input and Settings
-    # =========================================================================
+    """Process the config YAML to internal format"""
     cfg = {}
 
-    stream = open(args_in['cfg_file'], "r")
-    cfg_stream = yaml.load(stream)
+    try:
+        stream = open(args_in['cfg_file'], "r")
+        cfg_stream = yaml.load(stream)
+    except FileNotFoundError as e:
+        logging.exception("Config file not found at %s", args_in['cfg_file'])
+        sys.exit(1)
 
-    cfg['pc_file_name'] = cfg_stream["input_elevation"]["dataset_name"]
-    cfg['pc_dir'] = os.path.abspath(
+    cfg['pc_dataset_name'] = cfg_stream["input_elevation"]["dataset_name"]
+    cfg['pc_dir'] = add_abspath(
         cfg_stream["input_elevation"]["dataset_dir"])
-    cfg['pc_tile_case'] = cfg_stream["input_elevation"]["tile_case"]
+#     cfg['pc_tile_case'] = cfg_stream["input_elevation"]["tile_case"]
     cfg['polygons'] = cfg_stream['tile_index']['polygons']
     cfg['elevation'] = cfg_stream['tile_index']['elevation']
 
@@ -124,12 +145,8 @@ def main():
     cfg = parse_config_yaml(args_in)
     dbase = cfg['dbase']
     tiles = cfg['tiles']
-
-    logfile = os.path.join(cfg['output_dir'], 'batch3dfier.log')
-    logging.basicConfig(filename=logfile,
-                        filemode='a',
-                        level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s')
+    pc_name_map = config.pc_name_dict(cfg['pc_dir'], cfg['pc_dataset_name'])
+    pc_file_idx = config.pc_file_index(pc_name_map)
 
     # =========================================================================
     # Get tile list if 'extent' provided
@@ -186,6 +203,13 @@ def main():
         else:
             tile_views = config.get_2Dtile_views(dbase, cfg['tile_schema'],
                                                  tiles)
+        
+        if not tile_views or len(tile_views) == 0:
+            print("There was an error, see the logfile")
+            dbase.close()
+            sys.exit(1)
+        else:
+            pass
 
     else:
         TypeError("Please provide either 'extent' or 'tile_list' in config.")
@@ -193,6 +217,9 @@ def main():
     # Process multiple threads
     # reference: http://www.tutorialspoint.com/python3/python_multithreading.htm
     # =========================================================================
+    logging.debug("tile_views: %s", tile_views)
+    logging.debug("pc_file_idx: %s", pformat(pc_file_idx))
+
 
     exitFlag = 0
     tiles_skipped = []
@@ -207,9 +234,7 @@ def main():
             self.q = q
 
         def run(self):
-            print("Starting " + self.name)
             process_data(self.name, self.q)
-            print("Exiting " + self.name)
 
     def process_data(threadName, q):
         while not exitFlag:
@@ -217,14 +242,11 @@ def main():
             if not workQueue.empty():
                 tile = q.get()
                 queueLock.release()
-                print("%s processing %s" % (threadName, tile))
+                logging.debug("%s processing %s" % (threadName, tile))
                 t = config.call_3dfier(
                     db=dbase,
                     tile=tile,
                     schema_tiles=cfg['user_schema'],
-                    pc_file_name=cfg['pc_file_name'],
-                    pc_tile_case=cfg['pc_tile_case'],
-                    pc_dir=cfg['pc_dir'],
                     table_index_pc=cfg['elevation'],
                     fields_index_pc=cfg['elevation']['fields'],
                     table_index_footprint=cfg['polygons'],
@@ -238,7 +260,8 @@ def main():
                     output_format=cfg['output_format'],
                     output_dir=cfg['output_dir'],
                     path_3dfier=cfg['path_3dfier'],
-                    thread=threadName)
+                    thread=threadName,
+                    pc_file_index=pc_file_idx)
                 if t['tile_skipped'] is not None:
                     tiles_skipped.append(t['tile_skipped'])
                 else:
@@ -264,16 +287,14 @@ def main():
     # Fill the queue
     queueLock.acquire()
     if union_view:
-        #         print("union_view is", union_view)
         workQueue.put(union_view)
     elif tiles_clipped:
-        #         print("tiles_clipped is", tiles_clipped)
         for tile in tiles_clipped:
             workQueue.put(tile)
     else:
-        #         print("tile_views is", tile_views)
         for tile in tile_views:
             workQueue.put(tile)
+
     queueLock.release()
 
     # Wait for queue to empty
@@ -286,7 +307,6 @@ def main():
     # Wait for all threads to complete
     for t in threads:
         t.join()
-    print("Exiting Main Thread")
 
     # Drop temporary views that reference the clipped extent
     if union_view:
@@ -308,6 +328,8 @@ def main():
     for c in yml_cfg:
         command = command + " " + c
     call(command, shell=True)
+    
+    dbase.close()
 
     # =========================================================================
     # Reporting

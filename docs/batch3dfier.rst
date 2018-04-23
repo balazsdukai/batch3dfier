@@ -180,14 +180,20 @@ There are three options to tell batch3dfier what to extrude:
            tile_list: [all]
            
 
--   *batch3dfier* searches a directory to find the pointcloud file(s) that match a given tile in the pointcloud tile index. The match between the file name and the tile index unit name is strict, the tile index unit name has to be part of the file name. This feature is handy when you have hundreds or thousands of pointcloud files (e.g. AHN).
+-   *batch3dfier* searches a directory to find the pointcloud file(s) that match a given tile in the pointcloud tile index. The match between the file name and the tile index unit name is strict, the tile index unit name has to be part of the file name. This feature is handy when you have hundreds or thousands of pointcloud files (e.g. AHN). If the elevation files are spread in more than one folder, you can provide them as a sequence (as below). For every tile, *batch3dfier* searches through all elevation directories until a matching file is found. Thus the order of the directories is important. Except if you provide a sequence of sequences (``- [...,...]``), in which case *all* matching files in the sequence are used. This is best illustrated through an example.
+
+For the area of the Netherlands, multiple pointcloud data sets are available. The newest one, AHN3, is still incomplete, doesn't cover the whole country. Its previous version, AHN2, covers the whole country. Therefore we need to augment AHN3 with AHN2, in the areas where the new version is not available yet. Thus the location of these files provided as a sequence, taking a preference for AHN3, and only using AHN2 where its not available. However, an AHN2 tile is split vertically into *ground* and *non-ground* points and we need both in order to generate a complete 3D model. Therefore, the dirs are provided in a nested sequence, which makes *batch3dfier* use all matching files in the current sequence, not just the first one.
 
     ::
    
         input_elevation:
-            dataset_dir: /batch3dfier/example_data
+            dataset_dir: 
+                - '/batch3dfier/example_data/ahn3'
+                - ['/batch3dfier/example_data/ahn2/ground', '/batch3dfier/example_data/ahn2/rest']
    
--   Naming convention for the pointcloud files, where tile_case controls how the string matching is done for {tile} in order to find the ``input_elevation`` files in ``dataset_dir``. Allowed are options are:
+-   Naming convention for the pointcloud files, where tile_case controls how the string matching is done for {tile} in order to find the ``input_elevation`` files in ``dataset_dir``. There has to be a value for each listed directory in ``dataset_dir``, and matching is positional. So for example, files in ``/batch3dfier/example_data/ahn2/ground`` follow the naming convention of ``g{tile}.laz``.
+
+Allowed are options for ``tile_case`` are:
 
     -   'upper' (e.g. C_25GN1_filtered.LAZ),
     -   'lower' (e.g. C_25gn1_filtered.LAZ),
@@ -195,8 +201,8 @@ There are three options to tell batch3dfier what to extrude:
     
     ::
    
-        dataset_name: c_{tile}.laz # naming convention for the pointcloud files
-        tile_case: lower
+        dataset_name: ['c_{tile}.laz', ['g{tile}.laz', 'u{tile}.laz']] # naming convention for the pointcloud files
+        tile_case: ['lower', ['lower', 'lower']]
     
 -   Both the footprint and pointcloud tile indexes are expected to be in the database.
 

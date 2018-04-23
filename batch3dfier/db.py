@@ -3,7 +3,7 @@
 """Database connection class."""
 
 import psycopg2
-
+import logging
 
 class db(object):
     """A database connection class """
@@ -16,12 +16,11 @@ class db(object):
         self.password = password
         try:
             self.conn = psycopg2.connect(
-                "dbname=%s host=%s port=%s \
-                                          user=%s password=%s" %
+                "dbname=%s host=%s port=%s user=%s password=%s" %
                 (dbname, host, port, user, password))
-            print("Opened database successfully")
-        except BaseException:
-            print("I'm unable to connect to the database. Exiting function.")
+            logging.debug("Opened database successfully")
+        except BaseException as e:
+            logging.exception("I'm unable to connect to the database. Exiting function.")
 
     def sendQuery(self, query):
         """Send a query to the DB when no results need to return (e.g. CREATE)
@@ -57,7 +56,7 @@ class db(object):
         with self.conn:
             with self.conn.cursor() as cur:
                 cur.execute(query)
-                return(cur.fetchall())
+                return cur.fetchall()
 
     def vacuum(self, schema, table):
         """Vacuum analyze a table
@@ -81,7 +80,15 @@ class db(object):
         VACUUM ANALYZE {schema}.{table};
         """).format(schema=schema, table=table)
         self.sendQuery(query)
+    
+    def vacuum_full(self):
+        """Vacuum analyze the whole database"""
+        self.conn.set_isolation_level(
+            psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+        query = psycopg2.sql.SQL("VACUUM ANALYZE;")
+        self.sendQuery(query)
 
     def close(self):
-        """ """
+        """Close connection"""
         self.conn.close()
+        logging.debug("Closed database successfuly")

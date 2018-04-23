@@ -3,21 +3,23 @@
 """Configure batch3dfier with the input data."""
 
 import os.path
+import re
 from subprocess import call
 
 from shapely.geometry import shape
 from shapely import geos
 from psycopg2 import sql
 import fiona
+import logging
 
 
 def call_3dfier(db, tile, schema_tiles,
-                pc_file_name, pc_tile_case, pc_dir,
                 table_index_pc, fields_index_pc,
                 table_index_footprint, fields_index_footprint, uniqueid,
                 extent_ewkb, clip_prefix, prefix_tile_footprint,
                 yml_dir, tile_out, output_format, output_dir,
-                path_3dfier, thread):
+                path_3dfier, thread,
+                pc_file_index):
     """Call 3dfier with the YAML config created by yamlr().
 
     Note
@@ -31,12 +33,6 @@ def call_3dfier(db, tile, schema_tiles,
         Name of of the 2D tile.
     schema_tiles : str
         Schema of the footprint tiles.
-    pc_file_name : str
-        Naming convention for the pointcloud files. See 'dataset_name' in batch3dfier_config.yml.
-    pc_tile_case : str
-        How the string matching is done for pc_file_name. See 'tile_case' in batch3dfier_config.yml.
-    pc_dir : str
-        Directory of the pointcloud files. See 'dataset_dir' in batch3dfier_config.yml.
     thread : str
         Name/ID of the active thread.
     extent_ewkb : str
@@ -58,8 +54,10 @@ def call_3dfier(db, tile, schema_tiles,
                              table_index_footprint, fields_index_footprint,
                              extent_ewkb, tile_footprint=tile,
                              prefix_tile_footprint=prefix_tile_footprint)
-
-    pc_path = find_pc_files(pc_tiles, pc_dir, pc_file_name, pc_tile_case)
+    logging.debug("call_3dfier:pc_tiles: %s", pc_tiles)
+#     pc_path = find_pc_files(pc_tiles, pc_dir, pc_dataset_name, pc_tile_case)
+    pc_path = [t for tile in pc_tiles for t in pc_file_index[tile]]
+    logging.debug("call_3dfier:pc_path: %s", pc_path)
 
     # prepare output file name
     if not tile_out:
@@ -80,8 +78,8 @@ def call_3dfier(db, tile, schema_tiles,
         try:
             with open(yml_path, "w") as text_file:
                 text_file.write(config)
-        except BaseException:
-            print("Error: cannot write _config.yml")
+        except BaseException as e:
+            logging.exception("Error: cannot write _config.yml")
         # Prep output file name
         if "obj" in output_format.lower():
             o = tile_out + ".obj"
@@ -96,11 +94,11 @@ def call_3dfier(db, tile, schema_tiles,
             yml=yml_path, out=output_path)
         try:
             call(command, shell=True)
-        except BaseException:
-            print("\nCannot run 3dfier on tile " + tile)
+        except BaseException as e:
+            logging.exception("\nCannot run 3dfier on tile " + tile)
             tile_skipped = tile
     else:
-        print(
+        logging.debug(
             "\nPointcloud file(s) " +
             str(pc_tiles) +
             " not available. Skipping tile.\n")
@@ -178,25 +176,116 @@ output:
     return(config)
 
 
-def find_pc_files(pc_tiles, pc_dir, pc_file_name, pc_tile_case):
-    """Find pointcloud files in the file system when given a list of pointcloud tile names
-    """
-    # Prepare AHN file names -------------------------------------------------
-    if pc_tile_case == "upper":
-        tiles = [pc_file_name.format(tile=t.upper()) for t in pc_tiles]
-    elif pc_tile_case == "lower":
-        tiles = [pc_file_name.format(tile=t.lower()) for t in pc_tiles]
-    elif pc_tile_case == "mixed":
-        tiles = [pc_file_name.format(tile=t) for t in pc_tiles]
-    else:
-        raise "Please provide one of the allowed values for pc_tile_case."
-    # use the tile list in tiles to parse the pointcloud file names
-    pc_path = [os.path.join(pc_dir, pc_tile) for pc_tile in tiles]
+def pc_name_dict(dirs_list, dataset_name):
+    """Map dataset_dir to dataset_name"""
+    pc_name_map = {}
+    for i, elem in enumerate(dirs_list):
+        if isinstance(elem, str):
+            pc_name_map[elem] = {'name': dataset_name[i], 'priority': i}
+        else:
+            for j, elem2 in enumerate(dirs_list[i]):
+                if isinstance(elem2, str):
+                    pc_name_map[elem2] = {'name': dataset_name[i][j], 'priority': i}
+                else:
+                    raise ValueError('Lists deeper than 2 levels are not supported in dataset_dir')
+    return pc_name_map
 
-    if all([os.path.isfile(p) for p in pc_path]):
-        return(pc_path)
-    else:
-        return(None)
+
+def pc_file_index(pc_name_map):
+    """Create an index table of the pointcloud files in the given directories
+    
+    Maps the location of the point cloud files to the point cloud tile IDs/names.
+    The order of priority for the files is determined by the order in 
+    'input_elevation: dataset_dir'
+    And therefore, if given 5 directories [A, [B, C, D], E], their priority
+    is [1, [2, 2, 2], 3]. Where a lower number means higher priority. Thus if a
+    tile ('3a') has matching files (B/c3a.laz, C/B_3A.laz, D/o-3a.laz, E/a_3a.laz)
+    in multiple directories (B, C, D, E), then the file in the directory with
+    the higher priority is selected over that of lower priority. In this case
+    the file E/a_3a.laz is disregarded. If directories are given in a sublist, such
+    as B, C, D, then they have equal priority. Thus if a tile has a matching
+    file in more than one of these directories, then *all* of the files are used 
+    (B/c3a.laz, C/B_3A.laz, D/o-3a.laz).
+    
+    Tile name and file name matching is case insensitive. Furthermore, the match
+    is governed by the file name patterns provided in 'input_elevation: dataset_name'.
+    
+    
+    Returns
+    -------
+    dict
+        {pc_tile_name: [path to pc_file1, path to pc_file2, ...]}
+    """
+    f_idx = {}
+    pri = []
+    file_index = {}
+    
+    def get_priority(d):
+        return(d[1]['priority'])
+    d_sort = sorted(pc_name_map.items(), key=get_priority)
+    
+    for elem in d_sort:
+        idx = {}
+        name = elem[1]['name']
+        l = name[:name.find('{')]
+        r = name[name.find('}')+1:]
+        reg = '(?<=' + l + ').*(?=' + r + ')'
+        t_pat = re.compile(reg, re.IGNORECASE)
+        for item in os.listdir(elem[0]):
+            path = os.path.join(elem[0], item)
+            if os.path.isfile(path):
+                pc_tile = t_pat.search(item)
+                if pc_tile:
+                    tile = pc_tile.group(0).lower()
+                    idx[tile] = [path]
+        f_idx[elem[0]] = idx
+    # d_sort is [('/some/path', {'name': 'a_{tile}.laz', 'priority': 0}), ...]
+    for d in reversed(d_sort):
+        dirname = d[0]
+        if len(pri) == 0:
+            file_index = f_idx[dirname]
+        else:
+            if pri[-1] == d[1]['priority']:
+                tiles = f_idx[dirname].keys()
+                for t in tiles:
+                    try:
+                        file_index[t] += f_idx[dirname][t]
+                    except KeyError:
+                        file_index[t] = f_idx[dirname][t]
+            else:
+                f = {**file_index, **f_idx[dirname]}
+                file_index = f
+        pri.append(d[1]['priority'])
+    return file_index
+
+
+# def find_pc_files(pc_tiles, pc_dir, pc_dataset_name, pc_tile_case):
+#     """Find pointcloud files in the file system when given a list of pointcloud tile names
+#     """
+#     tiles = format_tile_name(pc_tiles, pc_dataset_name, pc_tile_case)
+#     
+#     # use the tile list in tiles to parse the pointcloud file names
+#     pc_path = [os.path.join(pc_dir, pc_tile) for pc_tile in tiles]
+# 
+#     if all([os.path.isfile(p) for p in pc_path]):
+#         return(pc_path)
+#     else:
+#         return(None)
+# 
+# 
+# def format_tile_name(pc_tiles, pc_dataset_name, pc_tile_case):
+#     """Format the tile names according to input_elvation:dataset_name and :tile_case"""
+#         # Prepare AHN file names -------------------------------------------------
+#     if pc_tile_case == "upper":
+#         tiles = [pc_dataset_name.format(tile=t.upper()) for t in pc_tiles]
+#     elif pc_tile_case == "lower":
+#         tiles = [pc_dataset_name.format(tile=t.lower()) for t in pc_tiles]
+#     elif pc_tile_case == "mixed":
+#         tiles = [pc_dataset_name.format(tile=t) for t in pc_tiles]
+#     else:
+#         raise "Please provide one of the allowed values for pc_tile_case."
+#     
+#     return tiles
 
 
 def find_pc_tiles(db, table_index_pc, fields_index_pc,
@@ -254,7 +343,7 @@ def find_pc_tiles(db, table_index_pc, fields_index_pc,
                                     field_ftpr_geom=field_ftpr_geom_q)
 
         resultset = db.getQuery(query)
-        tiles = [tile[0] for tile in resultset]
+        tiles = [tile[0].lower() for tile in resultset]
 
     return(tiles)
 
@@ -342,7 +431,7 @@ def get_2Dtiles(db, table_index, fields_index, ewkb):
     resultset = db.getQuery(query)
     tiles = [tile[0] for tile in resultset]
 
-    print("Nr. of tiles in clip extent: " + str(len(tiles)))
+    logging.debug("Nr. of tiles in clip extent: " + str(len(tiles)))
 
     return(tiles)
 
@@ -397,8 +486,8 @@ def get_2Dtile_views(db, schema_tiles, tiles):
 
     """
     # Get View names for the tiles
-    t = ["%" + str(tile) + "%" for tile in tiles]
-    t = sql.Literal(t)
+    tstr = ["%" + str(tile) + "%" for tile in tiles]
+    t = sql.Literal(tstr)
     schema_tiles = sql.Literal(schema_tiles)
     query = sql.SQL("""SELECT table_name
                         FROM information_schema.views
@@ -407,8 +496,11 @@ def get_2Dtile_views(db, schema_tiles, tiles):
                         """).format(schema_tiles, t)
     resultset = db.getQuery(query)
     tile_views = [tile[0] for tile in resultset]
-
-    return(tile_views)
+    if tile_views:
+        return tile_views
+    else:
+        logging.error("get_2Dtile_views returned None with %s", 
+                      query.as_string(db.conn))
 
 
 def clip_2Dtiles(db, user_schema, schema_tiles, tiles, poly, clip_prefix,
